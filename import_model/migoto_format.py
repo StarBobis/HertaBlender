@@ -4,7 +4,7 @@ import io
 from ..utils.migoto_utils import *
 
 from ..utils.migoto_utils import *
-from ..config.generate_mod_config import *
+from ..config.main_config import *
 from ..utils.timer_utils import *
 
 from typing import List, Dict, Union

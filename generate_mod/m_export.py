@@ -9,8 +9,7 @@ from ..utils.migoto_utils import Fatal, MigotoUtils
 
 from .d3d11_game_type import D3D11GameType
 
-from ..config.generate_mod_config import GenerateModConfig 
-from ..config.main_config import MainConfig,GameCategory
+from ..config.main_config import MainConfig,GameCategory,GenerateModConfig
 
 class BufferDataConverter:
     '''

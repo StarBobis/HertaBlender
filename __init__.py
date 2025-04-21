@@ -36,13 +36,13 @@ https://github.com/BlackStartx/PyCharm-Blender-Plugin
 # XXX 所有的文件夹都必须小写，因为git无法追踪文件夹名称大小写改变的记录
 
 bl_info = {
-    "name": "Catter",
+    "name": "Herta",
     "description": "A simple blender plugin for generate 3Dmigoto mod.",
     "blender": (3, 6, 0),
     "version": (1, 0, 0),
     "location": "View3D",
     "category": "Generic",
-    "tracker_url":"https://github.com/StarBobis/Catter"
+    "tracker_url":"https://github.com/StarBobis/Herta"
 }
 
 

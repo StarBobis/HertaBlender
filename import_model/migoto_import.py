@@ -1,7 +1,7 @@
 from .import_utils import *
 from .migoto_format import *
 from ..utils.collection_utils import *
-from ..config.import_model_config import *
+from ..config.main_config import *
 
 from ..utils.obj_utils import ObjUtils
 from ..utils.json_utils import JsonUtils

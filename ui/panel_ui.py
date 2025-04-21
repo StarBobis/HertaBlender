@@ -4,7 +4,7 @@ import os
 from ..utils.migoto_utils import *
 from ..config.main_config import * 
 from ..generate_mod.m_export_mod import *
-from ..config.import_model_config import ImportModelConfig
+from ..config.main_config import ImportModelConfig
 
 
 # 用于选择DBMT所在文件夹，主要是这里能自定义逻辑从而实现保存DBMT路径，这样下次打开就还能读取到。
@@ -42,7 +42,7 @@ class MigotoAttributePanel(bpy.types.Panel):
     bl_idname = "VIEW3D_PT_CATTER_MigotoAttribute_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Catter'
+    bl_category = 'Herta'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -82,7 +82,7 @@ class PanelModelImportConfig(bpy.types.Panel):
     bl_idname = "VIEW3D_PT_CATTER_WorkSpace_IO_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Catter'
+    bl_category = 'Herta'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -99,7 +99,7 @@ class PanelGenerateModConfig(bpy.types.Panel):
     bl_idname = "VIEW3D_PT_CATTER_GenerateMod_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Catter'
+    bl_category = 'Herta'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -130,7 +130,7 @@ class PanelButtons(bpy.types.Panel):
     bl_idname = "VIEW3D_PT_CATTER_Buttons_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Catter'
+    bl_category = 'Herta'
     
 
     def draw(self, context):

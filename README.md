@@ -1,7 +1,6 @@
 # Herta-Blender
 
-Herta's Blender Plugin
+Herta's Blender Plugin.
 
-# 
 
 

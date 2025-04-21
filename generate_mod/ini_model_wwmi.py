@@ -3,7 +3,7 @@ import shutil
 from .m_ini_builder import *
 from .m_drawib_model import *
 from .m_ini_helper import M_IniHelper
-from ..config.import_model_config import ImportModelConfigUnreal
+from ..config.main_config import ImportModelConfigUnreal
 
 
 
