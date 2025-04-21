@@ -20,10 +20,9 @@ from bpy.props import BoolProperty, StringProperty, CollectionProperty
 from bpy_extras.io_utils import orientation_helper
 
 def import_shapekeys_optimized(mesh, obj, shapekeys):
-    
     if not shapekeys:
         return
-
+    
     # ========== 基础形状键预处理 ==========
     basis = obj.shape_key_add(name='Basis')
     basis.interpolation = 'KEY_LINEAR'
@@ -55,6 +54,7 @@ def import_shapekeys_optimized(mesh, obj, shapekeys):
 
     # 清理临时数组
     del basis_co, offset_arr, new_co
+
 
 
 def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
@@ -115,17 +115,9 @@ def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
                         obj.vertex_groups[component.vg_map[str(i)]].add((vertex.index,), w, 'REPLACE')
 
 
+
 def import_uv_layers(mesh, obj, texcoords):
     for (texcoord, data) in sorted(texcoords.items()):
-        '''
-        Nico: 在我们的游戏Mod设计中，TEXCOORD只能有两个分量
-        如果出现两个以上，则是自定义数据存储到TEXCOORD使用，所以这里我们只考虑两个分量的情况。
-
-        TEXCOORDS can have up to four components, but UVs can only have two
-        dimensions. Not positive of the best way to handle this in general,
-        but for now I'm thinking that splitting the TEXCOORD into two sets of
-        UV coordinates might work:
-        '''
         dim = len(data[0])
         if dim == 4:
             components_list = ('xy', 'zw')
@@ -136,15 +128,28 @@ def import_uv_layers(mesh, obj, texcoords):
         cmap = {'x': 0, 'y': 1, 'z': 2, 'w': 3}
 
         for components in components_list:
-            uv_name = 'TEXCOORD%s.%s' % (texcoord and texcoord or '', components)
+            uv_name = 'TEXCOORD%s.%s' % (texcoord if texcoord else '', components)
             mesh.uv_layers.new(name=uv_name)
             blender_uvs = mesh.uv_layers[uv_name]
 
-            # 导入时100%必须翻转UV，因为游戏里Dump出来的贴图，就已经是UV翻转的了。
-            flip_uv = lambda uv: (uv[0], 1.0 - uv[1])
-            uvs = [[d[cmap[c]] for c in components] for d in data]
-            for l in mesh.loops:
-                blender_uvs.data[l.index].uv = flip_uv(uvs[l.vertex_index])
+            # 预计算每个顶点的翻转后的UV坐标
+            c0 = cmap[components[0]]
+            c1 = cmap[components[1]]
+            uvs_vertex = [(d[c0], 1.0 - d[c1]) for d in data]
+
+            # 获取所有循环的顶点索引
+            loops = mesh.loops
+            vertex_indices = [l.vertex_index for l in loops]
+
+            # 生成扁平的UV数组
+            uv_array = [0.0] * (2 * len(loops))
+            for i, vi in enumerate(vertex_indices):
+                u, v = uvs_vertex[vi]
+                uv_array[2 * i] = u
+                uv_array[2 * i + 1] = v
+
+            # 批量设置UV数据
+            blender_uvs.data.foreach_set('uv', uv_array)
 
 
 def import_faces_from_ib(mesh, ib):
@@ -238,7 +243,8 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
             else:
                 obj.data.materials.append(material)
     else:
-        print(texture_path)
+        pass
+        # print(texture_path)
 
 
 def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib_path:str):
@@ -344,7 +350,9 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             blend_weights[tmpi] = tuple(new_dict)
             tmpi = tmpi + 1
 
+    TimerUtils.Start("import_uv_layers")
     import_uv_layers(mesh, obj, texcoords)
+    TimerUtils.End("import_uv_layers")
 
     #  metadata.json, if contains then we can import merged vgmap.
     # TimerUtils.Start("Read Metadata")
@@ -370,7 +378,6 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     # Validate closes the loops so they don't disappear after edit mode and probably other important things:
     mesh.validate(verbose=False, clean_customdata=False)  
     mesh.update()
-    
     
     # XXX 这个方法还必须得在mesh.validate和mesh.update之后调用 3.6和4.2都可以用这个
     if use_normals:
