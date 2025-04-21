@@ -65,206 +65,6 @@ class ExtractedObjectHelper:
             return ExtractedObject(**json.load(f))
     
 
-class InputLayoutElement(object):
-    SemanticName = ""
-    SemanticIndex = ""
-    Format = ""
-    # ByteWidth # 这里没有ByteWidth是因为靠MigotoUtils.EncoderDecoder来控制的
-    AlignedByteOffset = ""
-    InputSlotClass = ""
-    ElementName = ""
-
-    # 固定项
-    InputSlot = "0"
-    InstanceDataStepRate = "0"
-
-    def __init__(self, arg=None):
-        # 不为空的时候说明是从文件或者dict中初始化的
-        if arg is not None:
-            if isinstance(arg, io.IOBase):
-                self.from_file(arg)
-            else:
-                self.from_dict(arg)
-
-            self.initialize_encoder_decoder()
-        
-        # 为空的时候说明每一个属性都是我们手动赋值上去的
-    
-    def initialize_encoder_decoder(self):
-        self.encoder, self.decoder = MigotoUtils.EncoderDecoder(self.Format)
-    
-    def read_attribute_line(self, f) -> bool:
-        line = next(f).strip()
-        if line.startswith('SemanticName: '):
-            self.SemanticName = line[len('SemanticName: ') :]
-            # print("SemanticName:" + self.SemanticName)
-        elif line.startswith('SemanticIndex: '):
-            self.SemanticIndex = line[len('SemanticIndex: ') :]
-            # print("SemanticIndex:" + self.SemanticIndex)
-            self.SemanticIndex = int(self.SemanticIndex)
-        elif line.startswith('Format: '):
-            self.Format = line[len('Format: '):]
-            # print("Format:" + self.Format)
-        elif line.startswith('AlignedByteOffset: '):
-            self.AlignedByteOffset = line[len('AlignedByteOffset: ') :]
-            # print("AlignedByteOffset:" + self.AlignedByteOffset)
-            if self.AlignedByteOffset == 'append':
-                raise Fatal('Input layouts using "AlignedByteOffset=append" are not yet supported')
-            self.AlignedByteOffset = int(self.AlignedByteOffset)
-        elif line.startswith('InputSlotClass: '):
-            self.InputSlotClass = line[len('InputSlotClass: ') :]
-            # print("InputSlotClass:" + self.InputSlotClass)
-            # return false if we meet end of all element
-            return False
-        return True
-        
-        
-    def from_file(self, f):
-        while(self.read_attribute_line(f)):
-            pass
-        self.format_len = MigotoUtils.format_components(self.Format)
-        if self.SemanticIndex != 0:
-            self.ElementName = self.SemanticName + str(self.SemanticIndex)
-        else:
-            self.ElementName = self.SemanticName 
-
-    def to_dict(self):
-        d = {'SemanticName': self.SemanticName, 'SemanticIndex': self.SemanticIndex, 'Format': self.Format,
-             'AlignedByteOffset': self.AlignedByteOffset,
-             'InputSlotClass': self.InputSlotClass,
-             'ElementName':self.ElementName}
-        return d
-
-    def to_string(self, indent=2):
-        return textwrap.indent(textwrap.dedent('''
-            SemanticName: %s
-            SemanticIndex: %i
-            Format: %s
-            AlignedByteOffset: %i
-            InputSlotClass: %s
-            ElementName: %s
-        ''').lstrip() % (
-            self.SemanticName,
-            self.SemanticIndex,
-            self.Format,
-            self.AlignedByteOffset,
-            self.InputSlotClass,
-            self.ElementName
-        ), ' ' * indent)
-
-    def from_dict(self, d):
-        self.SemanticName = d['SemanticName']
-        self.SemanticIndex = d['SemanticIndex']
-        self.Format = d['Format']
-        self.AlignedByteOffset = d['AlignedByteOffset']
-        self.InputSlotClass = d['InputSlotClass']
-        self.ElementName = d['ElementName']
-        self.format_len = MigotoUtils.format_components(self.Format)
-
-    @property
-    def name(self):
-        if self.SemanticIndex:
-            return '%s%i' % (self.SemanticName, self.SemanticIndex)
-        return self.SemanticName
-
-    def pad(self, data, val):
-        padding = self.format_len - len(data)
-        if padding >= 0:
-            data.extend([val] * padding)
-        return data 
-
-    def clip(self, data):
-        return data[:MigotoUtils.format_components(self.Format)]
-
-    def size(self):
-        return MigotoUtils.format_size(self.Format)
-
-    def is_float(self):
-        return MigotoUtils.misc_float_pattern.match(self.Format)
-
-    def is_int(self):
-        return MigotoUtils.misc_int_pattern.match(self.Format)
-
-    # 这个就是elem.encode 返回的是list类型的
-    def encode(self, data):
-        # print(self.Format, data)
-        return self.encoder(data)
-
-    def decode(self, data):
-        return self.decoder(data)
-
-    def __eq__(self, other):
-        return \
-                self.SemanticName == other.SemanticName and \
-                self.SemanticIndex == other.SemanticIndex and \
-                self.Format == other.Format and \
-                self.AlignedByteOffset == other.AlignedByteOffset and \
-                self.InputSlotClass == other.InputSlotClass 
-
-
-class InputLayout(object):
-    def __init__(self, custom_prop=[], stride=0):
-        self.elems:collections.OrderedDict[str,InputLayoutElement] = collections.OrderedDict()
-        self.stride = stride
-        if len(custom_prop) != 0:
-            for item in custom_prop:
-                elem = InputLayoutElement(item)
-                self.elems[elem.name] = elem
-
-    def serialise(self):
-        return [x.to_dict() for x in self.elems.values()]
-
-    def to_string(self):
-        ret = ''
-        for i, elem in enumerate(self.elems.values()):
-            ret += 'element[%i]:\n' % i
-            ret += elem.to_string()
-        return ret
-    
-    def contains(self,element_name:str) ->bool :
-        for elem in self.elems:
-            # print(elem)
-            if elem == element_name:
-                # print("contains " + element_name)
-                return True
-        return False
-
-    def parse_element(self, f):
-        elem = InputLayoutElement(f)
-        self.elems[elem.name] = elem
-
-    def __iter__(self):
-        return iter(self.elems.values())
-
-    def __getitem__(self, semantic):
-        return self.elems[semantic]
-
-    def encode(self, vertex) ->bytearray:
-        buf = bytearray(self.stride)
-
-        for element_name, data in vertex.items():
-            if element_name.startswith('~'):
-                continue
-            elem = self.elems[element_name]
-            data = elem.encode(data)
-            buf[elem.AlignedByteOffset:elem.AlignedByteOffset + len(data)] = data
-
-        assert (len(buf) == self.stride)
-        return buf
-    
-    # 这里decode是读取buf文件的时候用的，把二进制数据转换成置顶的类型
-    def decode(self, buf):
-        vertex = {}
-        for elem in self.elems.values():
-            data = buf[elem.AlignedByteOffset:elem.AlignedByteOffset + elem.size()]
-            vertex[elem.name] = elem.decode(data)
-        return vertex
-
-    def __eq__(self, other):
-        return self.elems == other.elems
-
-
-
 class IndexBuffer(object):
     def __init__(self, *args):
         self.faces = []
@@ -351,76 +151,155 @@ class IndexBuffer(object):
     def __len__(self):
         return len(self.faces) * 3
 
-'''
-TODO 
+    
+class Element:
+    def __init__(self, semantic_name, semantic_index, format_str, input_slot, aligned_byte_offset, input_slot_class, instance_data_step_rate):
+        self.SemanticName:str = semantic_name
+        self.SemanticIndex:int = semantic_index
+        self.Format:str = format_str
+        self.InputSlot = input_slot
+        self.AlignedByteOffset = aligned_byte_offset
+        self.InputSlotClass = input_slot_class
+        self.InstanceDataStepRate = instance_data_step_rate
 
-VertexBuffer的这个架构导入实在是太慢了。
-但是如果更新到使用Numpy的复杂数据类型，会导致现有的ib和vb架构全部需要推倒重写。
-没办法，只能暂时忍受了，反正一般模型导入的时间都不会特别长，在可接受范围内。
-
-'''
-class VertexBuffer(object):
-    vb_elem_pattern = re.compile(r'''vb\d+\[\d*\]\+\d+ (?P<semantic>[^:]+): (?P<data>.*)$''')
-
-    # Python gotcha - do not set layout=InputLayout() in the default function
-    # parameters, as they would all share the *same* InputLayout since the
-    # default values are only evaluated once on file load
-    def __init__(self, f=None, layout=None):
-        # 这里的vertices是3Dmigoto顶点，不是Blender顶点。
-        self.vertices = []
-        self.layout = layout and layout or InputLayout()
-        self.first = 0
-        self.vertex_count = 0
-        self.offset = 0
-        self.topology = 'trianglelist'
-
-        if f is not None:
-            for line in map(str.strip, f):
-                # print(line)
-                if line.startswith('byte offset:'):
-                    self.offset = int(line[13:])
-                if line.startswith('first vertex:'):
-                    self.first = int(line[14:])
-                if line.startswith('vertex count:'):
-                    self.vertex_count = int(line[14:])
-                if line.startswith('stride:'):
-                    self.layout.stride = int(line[7:])
-                if line.startswith('element['):
-                    self.layout.parse_element(f)
-                if line.startswith('topology:'):
-                    self.topology = line[10:]
-                    if line != 'topology: trianglelist':
-                        raise Fatal('"%s" is not yet supported' % line)
-            assert (len(self.vertices) == self.vertex_count)
-
-    def parse_vb_bin(self, f):
-        f.seek(self.offset)
-        # XXX: Should we respect the first/base vertex?
-        # f.seek(self.first * self.layout.stride, whence=1)
-        self.first = 0
-        while True:
-            vertex = f.read(self.layout.stride)
-            if not vertex:
-                break
-            self.vertices.append(self.layout.decode(vertex))
-        self.vertex_count = len(self.vertices)
-
-    def append(self, vertex):
-        self.vertices.append(vertex)
-        self.vertex_count += 1
-
-    def write(self, output, operator=None):
-        for vertex in self.vertices:
-            output.write(self.layout.encode(vertex))
-
-        msg = 'Wrote %i vertices to %s' % (len(self), output.name)
-        if operator:
-            operator.report({'INFO'}, msg)
+        self.ElementName = ""
+        if self.SemanticIndex == 0:
+            self.ElementName = self.SemanticName
         else:
-            print(msg)
+            self.ElementName = self.SemanticName + str(self.SemanticIndex)
 
-    def __len__(self):
-        return len(self.vertices)
-    
+    def __repr__(self):
+        return (f"Element(SemanticName='{self.SemanticName}', SemanticIndex={self.SemanticIndex}, "
+                f"Format='{self.Format}', InputSlot={self.InputSlot}, AlignedByteOffset={self.AlignedByteOffset}, "
+                f"InputSlotClass='{self.InputSlotClass}', InstanceDataStepRate={self.InstanceDataStepRate})")
 
+
+class FMTFile:
+    def __init__(self, filename):
+        self.stride = 0
+        self.topology = ""
+        self.format = ""
+        self.gametypename = ""
+        self.prefix = ""
+        self.elements:list[Element] = []
+
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+
+        element_info = {}
+        for line in lines:
+            parts = line.strip().split(":")
+            if len(parts) < 2:
+                continue  # 跳过格式不正确的行
+
+            key, value = parts[0].strip(), ":".join(parts[1:]).strip()
+            if key == "stride":
+                self.stride = int(value)
+            elif key == "topology":
+                self.topology = value
+            elif key == "format":
+                self.format = value
+            elif key == "gametypename":
+                self.gametypename = value
+            elif key == "prefix":
+                self.prefix = value
+            elif key.startswith("element"):
+                # 处理element块
+                if "SemanticName" in element_info:
+                    # 如果已经有一个element信息，则先添加到列表中
+                    self.elements.append(Element(
+                        element_info["SemanticName"], int(element_info["SemanticIndex"]), element_info["Format"],
+                        int(element_info["InputSlot"]), int(element_info["AlignedByteOffset"]),
+                        element_info["InputSlotClass"], int(element_info["InstanceDataStepRate"])
+                    ))
+                    element_info.clear()  # 清空当前element信息
+
+                # 将新的element属性添加到element_info字典中
+                element_info[key.split()[0]] = value
+            elif key in ["SemanticName", "SemanticIndex", "Format", "InputSlot", "AlignedByteOffset", "InputSlotClass", "InstanceDataStepRate"]:
+                element_info[key] = value
+
+        # 添加最后一个element
+        if "SemanticName" in element_info:
+            self.elements.append(Element(
+                element_info["SemanticName"], int(element_info["SemanticIndex"]), element_info["Format"],
+                int(element_info["InputSlot"]), int(element_info["AlignedByteOffset"]),
+                element_info["InputSlotClass"], int(element_info["InstanceDataStepRate"])
+            ))
+
+    def __repr__(self):
+        return (f"FMTFile(stride={self.stride}, topology='{self.topology}', format='{self.format}', "
+                f"gametypename='{self.gametypename}', prefix='{self.prefix}', elements={self.elements})")
     
+    def get_dtype(self):
+        fields = []
+        for elemnt in self.elements:
+            if elemnt.SemanticName == "POSITION":
+                if elemnt.Format == "R32G32B32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 3))
+                else:
+                    raise Fatal("Unknown POSITION format: " + elemnt.Format)
+            elif elemnt.SemanticName == "NORMAL":
+                if elemnt.Format == "R32G32B32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 3))
+                elif elemnt.Format == "R8G8B8A8_SNORM":
+                    fields.append((elemnt.ElementName, numpy.int8, 4))
+                else:
+                    raise Fatal("Unknown NORMAL format: " + elemnt.Format)
+            elif elemnt.SemanticName == "TANGENT":
+                if elemnt.Format == "R32G32B32A32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 4))
+                elif elemnt.Format == "R8G8B8A8_SNORM":
+                    fields.append((elemnt.ElementName, numpy.int8, 4))
+                else:
+                    raise Fatal("Unknown TANGENT format: " + elemnt.Format)
+            elif elemnt.SemanticName == "TEXCOORD":
+                if elemnt.Format == "R32G32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 2))
+                elif elemnt.Format == "R16G16_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float16, 2))
+                else:
+                    raise Fatal("Unknown TEXCOORD format: " + elemnt.Format)
+            elif elemnt.SemanticName == "COLOR":
+                if elemnt.Format == "R8G8B8A8_UNORM":
+                    fields.append((elemnt.ElementName, numpy.uint8, 4))
+                elif elemnt.Format == "R32G32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 2))
+                else:
+                    raise Fatal("Unknown COLOR format: " + elemnt.Format)
+            elif elemnt.SemanticName == "BLENDINDICES":
+                if elemnt.Format == "R8G8B8A8_UINT":
+                    fields.append((elemnt.ElementName, numpy.uint8, 4))
+                elif elemnt.Format == "R32G32B32A32_UINT":
+                    fields.append((elemnt.ElementName, numpy.uint32, 4))
+                elif elemnt.Format == "R16G16B16A16_UINT":
+                    fields.append((elemnt.ElementName, numpy.uint16, 4))
+                elif elemnt.Format == "R32G32_UINT":
+                    fields.append((elemnt.ElementName, numpy.uint32, 2))
+                elif elemnt.Format == "R32_UINT":
+                    fields.append((elemnt.ElementName, numpy.uint32, 1))
+                else:
+                    raise Fatal("Unknown BLENDINDICES format: " + elemnt.Format)
+            elif elemnt.SemanticName.startswith("BLENDWEIGHT"):
+                if elemnt.Format == "R8G8B8A8_UNORM":
+                    fields.append((elemnt.ElementName, numpy.uint8, 4))
+                elif elemnt.Format == "R32G32B32A32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 4))
+                elif elemnt.Format == "R16G16B16A16_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float16, 4))
+                elif elemnt.Format == "R32G32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 2))
+                elif elemnt.Format == "R32_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float32, 1))
+                else:
+                    raise Fatal("Unknown BLENDWEIGHT format: " + elemnt.Format)
+            elif elemnt.SemanticName.startswith("SHAPEKEY"):
+                if elemnt.Format == "R16G16B16_FLOAT":
+                    fields.append((elemnt.ElementName, numpy.float16, 3))
+                else:
+                    raise Fatal("Unknown SHAPEKEY format: " + elemnt.Format)
+                
+        # 这里的dtype是numpy的dtype,使用numpy的复杂数据类型实现快速导入
+        dtype = numpy.dtype(fields)
+
+        return dtype

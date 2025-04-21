@@ -1,8 +1,7 @@
-# XXX 所有的属性都必须放到这个catter_properties.py中，方便统一管理
-
 import bpy
 from bpy.props import FloatProperty, IntProperty
 from .main_config import MainConfig
+
 
 class CatterProperties_ImportModel_General(bpy.types.PropertyGroup):
     # ------------------------------------------------------------------------------------------------------------

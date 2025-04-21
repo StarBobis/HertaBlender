@@ -2,7 +2,7 @@ from .ui.panel_ui import *
 from .ui.collection_rightclick_ui import *
 from .ui.obj_rightclick_ui import *
 
-from .config.catter_properties import *
+from .config.props import *
 from .import_model.migoto_import import *
 from .generate_mod.m_export_mod import *
 

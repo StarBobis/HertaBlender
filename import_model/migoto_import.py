@@ -20,7 +20,13 @@ from bpy.props import BoolProperty, StringProperty, CollectionProperty
 from bpy_extras.io_utils import orientation_helper
 
 
+
+
+
+
 def import_shapekeys(mesh, obj, shapekeys):
+    TimerUtils.Start("import_shapekeys")
+
     if len(shapekeys.keys()) == 0:
         return
     
@@ -32,21 +38,32 @@ def import_shapekeys(mesh, obj, shapekeys):
     obj.data.shape_keys.use_relative = True
 
     # Import shapekeys
+    TimerUtils.Start("Read Data")
+
     for shapekey_id in shapekeys.keys():
         # Add new shapekey
         shapekey = obj.shape_key_add(name=f'Deform {shapekey_id}')
+
         shapekey.interpolation = 'KEY_LINEAR'
 
         # Apply shapekey vertex position offsets to each indexed vertex
         shapekey_data = shapekeys[shapekey_id]
+
+
         for vertex_id in range(len(obj.data.vertices)):
             position_offset = shapekey_data[vertex_id]
             shapekey.data[vertex_id].co.x += position_offset[0]
             shapekey.data[vertex_id].co.y += position_offset[1]
             shapekey.data[vertex_id].co.z += position_offset[2]
+    TimerUtils.End("Read Data")
+    
+    TimerUtils.End("import_shapekeys")
+
 
 
 def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
+    # 导入平均花费0.02秒。 
+
     # 这里注释掉的是旧的不包含Remapped的权重导入
     # assert (len(blend_indices) == len(blend_weights))
     # if blend_indices:
@@ -124,17 +141,11 @@ def import_uv_layers(mesh, obj, texcoords):
 
         for components in components_list:
             uv_name = 'TEXCOORD%s.%s' % (texcoord and texcoord or '', components)
-            if hasattr(mesh, 'uv_textures'):  # 2.79
-                mesh.uv_textures.new(uv_name)
-            else:  # 2.80
-                mesh.uv_layers.new(name=uv_name)
+            mesh.uv_layers.new(name=uv_name)
             blender_uvs = mesh.uv_layers[uv_name]
 
-            # Can't find an easy way to flip the display of V in Blender, so
-            # add an option to flip it on import & export:
             # 导入时100%必须翻转UV，因为游戏里Dump出来的贴图，就已经是UV翻转的了。
             flip_uv = lambda uv: (uv[0], 1.0 - uv[1])
-           
             uvs = [[d[cmap[c]] for c in components] for d in data]
             for l in mesh.loops:
                 blender_uvs.data[l.index].uv = flip_uv(uvs[l.vertex_index])
@@ -149,69 +160,6 @@ def import_faces_from_ib(mesh, ib):
     mesh.polygons.foreach_set('loop_total', [3] * len(ib.faces))
 
 
-def import_vertices(mesh, vb: VertexBuffer):
-    mesh.vertices.add(len(vb.vertices))
-    blend_indices = {}
-    blend_weights = {}
-    texcoords = {}
-    shapekeys = {}
-    use_normals = False
-    normals = []
-
-
-    for elem in vb.layout:
-        if elem.InputSlotClass != 'per-vertex':
-            continue
-
-        data = tuple(x[elem.name] for x in vb.vertices)
-        if elem.name == 'POSITION':
-            # Ensure positions are 3-dimensional:
-            if len(data[0]) == 4:
-                if ([x[3] for x in data] != [1.0] * len(data)):
-                    raise Fatal('Positions are 4D')
-                    # Nico: Blender暂时不支持4D索引，加了也没用，直接不行就报错，转人工处理。
-            positions = [(x[0], x[1], x[2]) for x in data]
-            mesh.vertices.foreach_set('co', unpack_list(positions))
-        elif elem.name.startswith('COLOR'):
-            if len(data[0]) <= 3 or 4 == 4:
-                # Nico:实际执行过程中，几乎总会执行这里而不是下面的
-                # 即使是原版的也是设置vertex_color_layer_channels = 4 然后这里or进行比较的，所以总是会执行这里的设计。
-                # 如果是else下面的执行到会百分百报错的。
-                # Either a monochrome/RGB layer, or Blender 2.80 which uses 4
-                # channel layers
-                mesh.vertex_colors.new(name=elem.name)
-                color_layer = mesh.vertex_colors[elem.name].data
-                for l in mesh.loops:
-                    color_layer[l.index].color = list(data[l.vertex_index]) + [0] * (4 - len(data[l.vertex_index]))
-            else:
-                mesh.vertex_colors.new(name=elem.name + '.RGB')
-                mesh.vertex_colors.new(name=elem.name + '.A')
-                color_layer = mesh.vertex_colors[elem.name + '.RGB'].data
-                alpha_layer = mesh.vertex_colors[elem.name + '.A'].data
-                for l in mesh.loops:
-                    color_layer[l.index].color = data[l.vertex_index][:3]
-                    alpha_layer[l.index].color = [data[l.vertex_index][3], 0, 0]
-
-        elif elem.name == 'NORMAL':
-            use_normals = True
-            normals = [(x[0], x[1], x[2]) for x in data]
-
-        elif elem.name in ('TANGENT', 'BINORMAL'):
-            # 不需要导入TANGENT和BINORMAL，因为导出时会重新计算。
-            pass
-        elif elem.name.startswith('BLENDINDICES'):
-            blend_indices[elem.SemanticIndex] = data
-        elif elem.name.startswith('BLENDWEIGHT'):
-            blend_weights[elem.SemanticIndex] = data
-        elif elem.name.startswith('TEXCOORD') and elem.is_float():
-            texcoords[elem.SemanticIndex] = data
-        elif elem.name.startswith('SHAPEKEY') and elem.is_float():
-            shapekeys[elem.SemanticIndex] = data
-        else:
-            # 不认识的不导入
-            raise Fatal("Unknown ElementName: " + elem.name)
-
-    return (blend_indices, blend_weights, texcoords, use_normals,normals,shapekeys)
 
 
 def find_texture(texture_prefix, texture_suffix, directory):
@@ -300,34 +248,39 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
 def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib_path:str):
     operator.report({'INFO'}, "Import From " + fmt_path)
     TimerUtils.Start("import_3dmigoto_raw_buffers")
-    # get import prefix
+
+    # 获取导入模型的前缀，去掉.fmt就是了，因为我们导入是选择.fmt文件导入
     mesh_name = os.path.basename(fmt_path)
     if mesh_name.endswith(".fmt"):
         mesh_name = mesh_name[0:len(mesh_name) - 4]
-    
-    print("import meshname: " + mesh_name)
+    print("导入模型: " + mesh_name)
 
-    # create mesh and obj
+    # 创建mesh和obj
     mesh = bpy.data.meshes.new(mesh_name)
     obj = bpy.data.objects.new(mesh.name, mesh)
 
-    # Nico: 虽然每个游戏导入时的坐标不一致，导致模型朝向都不同，但是不在这里修改，而是在后面根据具体的游戏进行扶正
+    # 虽然每个游戏导入时的坐标不一致，导致模型朝向都不同，但是不在这里修改，而是在后面根据具体的游戏进行扶正
     obj.matrix_world = axis_conversion(from_forward='-Z', from_up='Y').to_4x4()
 
-    # check if .ib .vb file is empty, skip empty import.
-    if os.path.getsize(vb_path) == 0 or os.path.getsize(ib_path) == 0:
+    # 如果vb和ib文件不存在，则跳过导入
+    vb_file_size = os.path.getsize(vb_path)
+    if vb_file_size == 0 or os.path.getsize(ib_path) == 0:
         return obj
+    
+    # 读取fmt文件，解析出后面要用的dtype
+    fmt_file = FMTFile(fmt_path)
+    fmt_dtype = fmt_file.get_dtype()
 
-    # create vb and ib class and read data. TODO 这里耗时过于长了。
-    TimerUtils.Start("Read VB Data") # 1.0636
-    vb = VertexBuffer(open(fmt_path, 'r'))
-    vb.parse_vb_bin(open(vb_path, 'rb'))
-    TimerUtils.End("Read VB Data")
+    vb_stride = fmt_dtype.itemsize
+    vb_vertex_count = int(vb_file_size / vb_stride)
 
-    TimerUtils.Start("Read IB Data")
+    vb_data = numpy.fromfile(vb_path, dtype=fmt_dtype, count=vb_vertex_count)
+
+    # create vb and ib class and read data. 
+    # TODO 这里耗时过于长了。
+
     ib = IndexBuffer(open(fmt_path, 'r'))
     ib.parse_ib_bin(open(ib_path, 'rb'))
-    TimerUtils.End("Read IB Data")
 
     # 设置GameTypeName，方便在Catter的Properties面板中查看
     obj['3DMigoto:GameTypeName'] = ib.gametypename
@@ -337,13 +290,51 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     obj["3DMigoto:RecalculateCOLOR"] = False
 
     # post process for import data.
-    TimerUtils.Start("Import Face From IB")
     import_faces_from_ib(mesh, ib)
-    TimerUtils.End("Import Face From IB")
 
-    TimerUtils.Start("Import Vertices From VB")
-    (blend_indices, blend_weights, texcoords, use_normals, normals, shapekeys) = import_vertices(mesh, vb)
-    TimerUtils.End("Import Vertices From VB")
+    # 添加点
+    mesh.vertices.add(vb_vertex_count)
+
+    blend_indices = {}
+    blend_weights = {}
+    texcoords = {}
+    shapekeys = {}
+    use_normals = False
+    normals = []
+
+    for element in fmt_file.elements:
+        data = vb_data[element.ElementName]
+        if element.SemanticName == "POSITION":
+            if len(data[0]) == 4:
+                if ([x[3] for x in data] != [1.0] * len(data)):
+                    # Nico: Blender暂时不支持4D索引，加了也没用，直接不行就报错，转人工处理。
+                    raise Fatal('Positions are 4D')
+            positions = [(x[0], x[1], x[2]) for x in data]
+            mesh.vertices.foreach_set('co', unpack_list(positions))
+        elif element.SemanticName.startswith("COLOR"):
+            mesh.vertex_colors.new(name=element.ElementName)
+            color_layer = mesh.vertex_colors[element.ElementName].data
+            for l in mesh.loops:
+                color_layer[l.index].color = list(data[l.vertex_index]) + [0] * (4 - len(data[l.vertex_index]))
+        elif element.SemanticName.startswith("BLENDINDICES"):
+            blend_indices[element.SemanticIndex] = data
+        elif element.SemanticName.startswith("BLENDWEIGHT"):
+            blend_weights[element.SemanticIndex] = data
+        elif element.SemanticName.startswith("TEXCOORD"):
+            texcoords[element.SemanticIndex] = data
+        elif element.SemanticName.startswith("SHAPEKEY"):
+            shapekeys[element.SemanticIndex] = data
+        elif element.SemanticName.startswith("NORMAL"):
+            use_normals = True
+            normals = [(x[0], x[1], x[2]) for x in data]
+        elif element.SemanticName == "TANGENT":
+            pass
+        elif element.SemanticName == "BINORMAL":
+            pass
+        else:
+            raise Fatal("Unknown ElementName: " + element.ElementName)
+
+    LOG.newline()
 
     # 导入完之后，如果发现blend_weights是空的，则自动补充默认值为1,0,0,0的BLENDWEIGHTS
     if len(blend_weights) == 0 and len(blend_indices) != 0:
@@ -357,9 +348,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             blend_weights[tmpi] = tuple(new_dict)
             tmpi = tmpi + 1
 
-    TimerUtils.Start("Import UV Laters")
     import_uv_layers(mesh, obj, texcoords)
-    TimerUtils.End("Import UV Laters")
 
     #  metadata.json, if contains then we can import merged vgmap.
     # TimerUtils.Start("Read Metadata")
@@ -377,9 +366,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
                 component = extracted_object.components[partname_count]
     # TimerUtils.End("Read Metadata") # 0:00:00.001490 
 
-    TimerUtils.Start("Import VertexGroups")
     import_vertex_groups(mesh, obj, blend_indices, blend_weights, component)
-    TimerUtils.End("Import VertexGroups")
 
     import_shapekeys(mesh, obj, shapekeys)
 
@@ -401,18 +388,13 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
         obj.rotation_euler[1] = 0.0  # Y轴
         obj.rotation_euler[2] = 0.0  # Z轴
 
-    # Set scale by user setting when import model.
+    # 设置导入时模型大小比例，Unreal模型常用
     scalefactor = bpy.context.scene.dbmt.model_scale
     obj.scale = scalefactor,scalefactor,scalefactor
 
+    # 导入时翻转模型
     if ImportModelConfig.import_flip_scale_x():
         obj.scale.x = obj.scale.x * -1
-
-    # Flush every time export
-    # bpy.context.view_layer.update()
-
-    # Force flush makes better user experience.
-    # bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
     TimerUtils.End("import_3dmigoto_raw_buffers")
     return obj
