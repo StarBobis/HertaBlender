@@ -13,9 +13,6 @@ from dataclasses import dataclass, field, asdict
 from ..utils.migoto_utils import *
 
 import io
-import textwrap
-import collections
-import math
 
 
 @dataclass
@@ -301,5 +298,4 @@ class FMTFile:
                 
         # 这里的dtype是numpy的dtype,使用numpy的复杂数据类型实现快速导入
         dtype = numpy.dtype(fields)
-
         return dtype

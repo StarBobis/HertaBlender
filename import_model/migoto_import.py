@@ -84,10 +84,10 @@ def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
 
     # 这个东西只有在逆向Mod的时候，如果Blend和Texcoord长度相同时，会把两种都逆向出来，此时可以用这个在导入时校验来避免Blender卡死
     # TODO 但是更好的做法应该是在3Dmigoto-Sword-Lv5中就进行校验。
-    for number in blend_indices[0]:
-        for blendindex in number:
-            if blendindex > 1000 or blendindex < 0:
-                raise Fatal("当前导入模型的BLENDINDICES数值为:" +str(blendindex) + "，该数值大于1000或小于0，数据不正确！BLENDINDEX代表顶点组索引，它的值在实际使用过程中几乎不可能大于1000，也不可能小于0！请确认您的.vb文件中的数据排列是否与.fmt文件中的数据排列相符，例如在Mod逆向中如果遇到Texcoord和Blend分类长度相同的Buffer文件则每种排列可能都会逆向出来一份，您当前导入的可能就是数据排列错误的那一份")
+    # for number in blend_indices[0]:
+    #     for blendindex in number:
+    #         if blendindex > 1000 or blendindex < 0:
+    #             raise Fatal("当前导入模型的BLENDINDICES数值为:" +str(blendindex) + "，该数值大于1000或小于0，数据不正确！BLENDINDEX代表顶点组索引，它的值在实际使用过程中几乎不可能大于1000，也不可能小于0！请确认您的.vb文件中的数据排列是否与.fmt文件中的数据排列相符，例如在Mod逆向中如果遇到Texcoord和Blend分类长度相同的Buffer文件则每种排列可能都会逆向出来一份，您当前导入的可能就是数据排列错误的那一份")
 
     assert (len(blend_indices) == len(blend_weights))
     if blend_indices:
@@ -113,7 +113,6 @@ def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
                     else:
                         # 这里由于C++生成的json文件是无序的，所以我们这里读取的时候要用原始的map而不是转换成列表的索引，避免无序问题
                         obj.vertex_groups[component.vg_map[str(i)]].add((vertex.index,), w, 'REPLACE')
-
 
 
 def import_uv_layers(mesh, obj, texcoords):
@@ -159,8 +158,6 @@ def import_faces_from_ib(mesh, ib):
     # https://docs.blender.org/api/3.6/bpy.types.MeshPolygon.html#bpy.types.MeshPolygon.loop_start
     mesh.polygons.foreach_set('loop_start', [x * 3 for x in range(len(ib.faces))])
     mesh.polygons.foreach_set('loop_total', [3] * len(ib.faces))
-
-
 
 
 def find_texture(texture_prefix, texture_suffix, directory):
@@ -249,7 +246,7 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
 
 def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib_path:str):
     operator.report({'INFO'}, "Import From " + fmt_path)
-    TimerUtils.Start("import_3dmigoto_raw_buffers")
+    # TimerUtils.Start("import_3dmigoto_raw_buffers")
 
     # 获取导入模型的前缀，去掉.fmt就是了，因为我们导入是选择.fmt文件导入
     mesh_name = os.path.basename(fmt_path)
@@ -275,7 +272,6 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
 
     vb_stride = fmt_dtype.itemsize
     vb_vertex_count = int(vb_file_size / vb_stride)
-
     vb_data = numpy.fromfile(vb_path, dtype=fmt_dtype, count=vb_vertex_count)
 
     # create vb and ib class and read data. 
@@ -293,6 +289,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
 
     # post process for import data.
     import_faces_from_ib(mesh, ib)
+
 
     # 添加点
     mesh.vertices.add(vb_vertex_count)
@@ -335,8 +332,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             pass
         else:
             raise Fatal("Unknown ElementName: " + element.ElementName)
-
-    LOG.newline()
+        
 
     # 导入完之后，如果发现blend_weights是空的，则自动补充默认值为1,0,0,0的BLENDWEIGHTS
     if len(blend_weights) == 0 and len(blend_indices) != 0:
@@ -350,12 +346,11 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             blend_weights[tmpi] = tuple(new_dict)
             tmpi = tmpi + 1
 
-    TimerUtils.Start("import_uv_layers")
+
     import_uv_layers(mesh, obj, texcoords)
-    TimerUtils.End("import_uv_layers")
+
 
     #  metadata.json, if contains then we can import merged vgmap.
-    # TimerUtils.Start("Read Metadata")
     component = None
     if ImportModelConfigUnreal.import_merged_vgmap():
         # print("尝试读取Metadata.json")
@@ -368,12 +363,12 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
                 partname_count = int(fmt_filename.split("-")[1]) - 1
                 print("import partname count: " + str(partname_count))
                 component = extracted_object.components[partname_count]
-    # TimerUtils.End("Read Metadata") # 0:00:00.001490 
+
 
     import_vertex_groups(mesh, obj, blend_indices, blend_weights, component)
 
-    # import_shapekeys(mesh, obj, shapekeys)
     import_shapekeys_optimized(mesh, obj, shapekeys)
+
 
     # Validate closes the loops so they don't disappear after edit mode and probably other important things:
     mesh.validate(verbose=False, clean_customdata=False)  
@@ -400,7 +395,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     if ImportModelConfig.import_flip_scale_x():
         obj.scale.x = obj.scale.x * -1
 
-    TimerUtils.End("import_3dmigoto_raw_buffers")
+    # TimerUtils.End("import_3dmigoto_raw_buffers")
     return obj
 
 
@@ -577,9 +572,6 @@ def ImprotFromWorkSpace(self, context):
     # Select all objects under collection (因为用户习惯了导入后就是全部选中的状态). 
     CollectionUtils.select_collection_objects(workspace_collection)
 
-    
-    # XXX 导入后必须删除松散点，因为在游戏渲染里松散的点不是三角面，在trianglelist中无意义
-    ObjUtils.selected_obj_delete_loose()
 
 
 class DBMTImportAllFromCurrentWorkSpace(bpy.types.Operator):

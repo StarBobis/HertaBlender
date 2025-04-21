@@ -60,6 +60,7 @@ class ObjUtils:
 
     @classmethod
     def selected_obj_delete_loose(cls):
+        
         # 获取当前选中的对象
         selected_objects = bpy.context.selected_objects
         # 检查是否选中了一个Mesh对象
