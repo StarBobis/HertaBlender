@@ -19,7 +19,8 @@ from bpy_extras.io_utils import unpack_list, ImportHelper, axis_conversion
 from bpy.props import BoolProperty, StringProperty, CollectionProperty
 from bpy_extras.io_utils import orientation_helper
 
-def import_shapekeys_optimized(mesh, obj, shapekeys):
+
+def import_shapekeys(mesh, obj, shapekeys):
     if not shapekeys:
         return
     
@@ -56,39 +57,7 @@ def import_shapekeys_optimized(mesh, obj, shapekeys):
     del basis_co, offset_arr, new_co
 
 
-
 def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
-    # 导入平均花费0.02秒。 
-
-    # 这里注释掉的是旧的不包含Remapped的权重导入
-    # assert (len(blend_indices) == len(blend_weights))
-    # if blend_indices:
-    #     # We will need to make sure we re-export the same blend indices later -
-    #     # that they haven't been renumbered. Not positive whether it is better
-    #     # to use the vertex group index, vertex group name or attach some extra
-    #     # data. Make sure the indices and names match:
-    #     num_vertex_groups = max(itertools.chain(*itertools.chain(*blend_indices.values()))) + 1
-    #     for i in range(num_vertex_groups):
-    #         obj.vertex_groups.new(name=str(i))
-    #     for vertex in mesh.vertices:
-    #         for semantic_index in sorted(blend_indices.keys()):
-    #             for i, w in zip(blend_indices[semantic_index][vertex.index],
-    #                             blend_weights[semantic_index][vertex.index]):
-    #                 if w == 0.0:
-    #                     continue
-    #                 obj.vertex_groups[i].add((vertex.index,), w, 'REPLACE')
-
-    # 查看具体格式
-    # print(blend_indices[0][0])
-    # print(blend_weights[0][0])
-
-    # 这个东西只有在逆向Mod的时候，如果Blend和Texcoord长度相同时，会把两种都逆向出来，此时可以用这个在导入时校验来避免Blender卡死
-    # TODO 但是更好的做法应该是在3Dmigoto-Sword-Lv5中就进行校验。
-    # for number in blend_indices[0]:
-    #     for blendindex in number:
-    #         if blendindex > 1000 or blendindex < 0:
-    #             raise Fatal("当前导入模型的BLENDINDICES数值为:" +str(blendindex) + "，该数值大于1000或小于0，数据不正确！BLENDINDEX代表顶点组索引，它的值在实际使用过程中几乎不可能大于1000，也不可能小于0！请确认您的.vb文件中的数据排列是否与.fmt文件中的数据排列相符，例如在Mod逆向中如果遇到Texcoord和Blend分类长度相同的Buffer文件则每种排列可能都会逆向出来一份，您当前导入的可能就是数据排列错误的那一份")
-
     assert (len(blend_indices) == len(blend_weights))
     if blend_indices:
         # We will need to make sure we re-export the same blend indices later -
@@ -151,15 +120,6 @@ def import_uv_layers(mesh, obj, texcoords):
             blender_uvs.data.foreach_set('uv', uv_array)
 
 
-def import_faces_from_ib(mesh, ib):
-    mesh.loops.add(len(ib.faces) * 3)
-    mesh.polygons.add(len(ib.faces))
-    mesh.loops.foreach_set('vertex_index', unpack_list(ib.faces))
-    # https://docs.blender.org/api/3.6/bpy.types.MeshPolygon.html#bpy.types.MeshPolygon.loop_start
-    mesh.polygons.foreach_set('loop_start', [x * 3 for x in range(len(ib.faces))])
-    mesh.polygons.foreach_set('loop_total', [3] * len(ib.faces))
-
-
 def find_texture(texture_prefix, texture_suffix, directory):
     for root, dirs, files in os.walk(directory):
         for file in files:
@@ -188,7 +148,6 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
     texture_suffix = "-DiffuseMap.tga"
 
     # 查找是否存在满足条件的转换好的tga贴图文件
-
     texture_path = None
 
     # 查找是否存在满足条件的转换好的tga贴图文件
@@ -239,15 +198,16 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
                 obj.data.materials[0] = material
             else:
                 obj.data.materials.append(material)
-    else:
-        pass
-        # print(texture_path)
 
 
 def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib_path:str):
     operator.report({'INFO'}, "Import From " + fmt_path)
-    # TimerUtils.Start("import_3dmigoto_raw_buffers")
 
+    # 如果vb和ib文件不存在，则跳过导入
+    vb_file_size = os.path.getsize(vb_path)
+    if vb_file_size == 0 or os.path.getsize(ib_path) == 0:
+        return obj
+    
     # 获取导入模型的前缀，去掉.fmt就是了，因为我们导入是选择.fmt文件导入
     mesh_name = os.path.basename(fmt_path)
     if mesh_name.endswith(".fmt"):
@@ -257,41 +217,36 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     # 创建mesh和obj
     mesh = bpy.data.meshes.new(mesh_name)
     obj = bpy.data.objects.new(mesh.name, mesh)
-
     # 虽然每个游戏导入时的坐标不一致，导致模型朝向都不同，但是不在这里修改，而是在后面根据具体的游戏进行扶正
     obj.matrix_world = axis_conversion(from_forward='-Z', from_up='Y').to_4x4()
-
-    # 如果vb和ib文件不存在，则跳过导入
-    vb_file_size = os.path.getsize(vb_path)
-    if vb_file_size == 0 or os.path.getsize(ib_path) == 0:
-        return obj
-    
-    # 读取fmt文件，解析出后面要用的dtype
-    fmt_file = FMTFile(fmt_path)
-    fmt_dtype = fmt_file.get_dtype()
-
-    vb_stride = fmt_dtype.itemsize
-    vb_vertex_count = int(vb_file_size / vb_stride)
-    vb_data = numpy.fromfile(vb_path, dtype=fmt_dtype, count=vb_vertex_count)
-
-    # create vb and ib class and read data. 
-    # TODO 这里耗时过于长了。
-
-    ib = IndexBuffer(open(fmt_path, 'r'))
-    ib.parse_ib_bin(open(ib_path, 'rb'))
-
-    # 设置GameTypeName，方便在Catter的Properties面板中查看
-    obj['3DMigoto:GameTypeName'] = ib.gametypename
-
     # Nico: 设置默认不重计算TANGNET和COLOR
     obj["3DMigoto:RecalculateTANGENT"] = False
     obj["3DMigoto:RecalculateCOLOR"] = False
 
-    # post process for import data.
-    import_faces_from_ib(mesh, ib)
+
+    # 读取fmt文件，解析出后面要用的dtype
+    fmt_file = FMTFile(fmt_path)
+    fmt_dtype = fmt_file.get_dtype()
+    # 设置GameTypeName，方便在Catter的Properties面板中查看
+    obj['3DMigoto:GameTypeName'] = fmt_file.gametypename
 
 
-    # 添加点
+    # 导入IB文件设置为mesh的三角形索引
+    ib_stride = MigotoUtils.format_size(fmt_file.format)
+    ib_count = int(os.path.getsize(ib_path) / ib_stride)
+    ib_polygon_count = int(ib_count / 3)
+    ib_data = numpy.fromfile(ib_path, dtype=MigotoUtils.get_nptype_from_format(fmt_file.format), count=ib_count)
+    mesh.loops.add(ib_count)
+    mesh.polygons.add(ib_polygon_count)
+    mesh.loops.foreach_set('vertex_index', ib_data)
+    mesh.polygons.foreach_set('loop_start', [x * 3 for x in range(ib_polygon_count)])
+    mesh.polygons.foreach_set('loop_total', [3] * ib_polygon_count)
+
+
+    # 导入vb文件中的数据
+    vb_stride = fmt_dtype.itemsize
+    vb_vertex_count = int(vb_file_size / vb_stride)
+    vb_data = numpy.fromfile(vb_path, dtype=fmt_dtype, count=vb_vertex_count)
     mesh.vertices.add(vb_vertex_count)
 
     blend_indices = {}
@@ -332,7 +287,6 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             pass
         else:
             raise Fatal("Unknown ElementName: " + element.ElementName)
-        
 
     # 导入完之后，如果发现blend_weights是空的，则自动补充默认值为1,0,0,0的BLENDWEIGHTS
     if len(blend_weights) == 0 and len(blend_indices) != 0:
@@ -346,9 +300,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             blend_weights[tmpi] = tuple(new_dict)
             tmpi = tmpi + 1
 
-
     import_uv_layers(mesh, obj, texcoords)
-
 
     #  metadata.json, if contains then we can import merged vgmap.
     component = None
@@ -364,11 +316,9 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
                 print("import partname count: " + str(partname_count))
                 component = extracted_object.components[partname_count]
 
-
     import_vertex_groups(mesh, obj, blend_indices, blend_weights, component)
 
-    import_shapekeys_optimized(mesh, obj, shapekeys)
-
+    import_shapekeys(mesh, obj, shapekeys)
 
     # Validate closes the loops so they don't disappear after edit mode and probably other important things:
     mesh.validate(verbose=False, clean_customdata=False)  
@@ -395,7 +345,6 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     if ImportModelConfig.import_flip_scale_x():
         obj.scale.x = obj.scale.x * -1
 
-    # TimerUtils.End("import_3dmigoto_raw_buffers")
     return obj
 
 
@@ -489,13 +438,9 @@ class Import3DMigotoRaw(bpy.types.Operator, ImportHelper):
                     self.report({'ERROR'}, "未找到.fmt文件，无法导入")
             except Fatal as e:
                 self.report({'ERROR'}, str(e))
-        
 
         # Select all objects under collection (因为用户习惯了导入后就是全部选中的状态). 
         CollectionUtils.select_collection_objects(collection)
-
-        # XXX 导入后必须删除松散点，因为在游戏渲染里松散的点不是三角面，在trianglelist中无意义
-        ObjUtils.selected_obj_delete_loose()
 
         return {'FINISHED'}
 

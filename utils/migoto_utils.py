@@ -122,6 +122,10 @@ class MigotoUtils:
 
     @classmethod
     def format_size(cls,fmt):
+        '''
+        输入FORMAT返回该FORMAT的字节数
+        例如输入R32G32B32_FLOAT 返回字节数：12
+        '''
         matches = cls.components_pattern.findall(fmt)
         return sum(map(int, matches)) // 8
 
