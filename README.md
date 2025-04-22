@@ -15,5 +15,6 @@ Herta's code learns from these projects:
 - https://github.com/SpectrumQT/WWMI-Tools
 - https://github.com/leotorrez/XXMITools
 - https://github.com/SilentNightSound/GI-Model-Importer
+- https://github.com/CGCookie/blender-addon-updater
 
 Thansk for their great code!
