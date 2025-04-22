@@ -126,7 +126,7 @@ class PanelGenerateModConfig(bpy.types.Panel):
             
 
 class PanelButtons(bpy.types.Panel):
-    bl_label = "Catter" 
+    bl_label = "使用指定DBMT路径" 
     bl_idname = "VIEW3D_PT_CATTER_Buttons_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
