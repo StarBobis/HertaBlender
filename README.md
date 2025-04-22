@@ -1,6 +1,9 @@
 # Herta-Blender
 
 Herta's Blender Plugin.
+# Usage
+
+- Blender 3.6LTS to 4.2LTS
 
 # Features
 - Support multiple games but simple and easy and same way to use.
