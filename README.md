@@ -21,6 +21,10 @@ Herta 的Blender插件.
 [![在爱发电上支持我](https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png)](https://afdian.com/a/NicoMico666)
 
 
+<a href="https://afdian.com/a/NicoMico666" target="_blank">
+  <img src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="在爱发电上支持我" width="300">
+</a>
+
 # 相似项目
 
 Herta插件的代码从如下项目中获得灵感并进行了大量学习与改进:
