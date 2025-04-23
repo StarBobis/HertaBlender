@@ -1,5 +1,5 @@
 from .import_utils import *
-from .migoto_format import *
+from ..migoto.migoto_format import *
 from ..utils.collection_utils import *
 from ..config.main_config import *
 

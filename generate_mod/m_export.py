@@ -7,7 +7,7 @@ from ..utils.obj_utils import ObjUtils
 from ..utils.timer_utils import TimerUtils
 from ..utils.migoto_utils import Fatal, MigotoUtils
 
-from .d3d11_game_type import D3D11GameType
+from ..migoto.migoto_format import D3D11GameType
 
 from ..config.main_config import MainConfig,GameCategory,GenerateModConfig
 

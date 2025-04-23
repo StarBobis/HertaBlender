@@ -4,7 +4,7 @@ import re
 
 from .m_export import get_buffer_ib_vb_fast
 
-from .d3d11_game_type import *
+from ..migoto.migoto_format import *
 
 from ..utils.collection_utils import *
 from ..config.main_config import *
@@ -13,7 +13,7 @@ from ..utils.timer_utils import *
 from ..utils.migoto_utils import Fatal
 from ..utils.obj_utils import ObjUtils
 
-from ..import_model.migoto_format import *
+from ..migoto.migoto_format import ExtractedObject, ExtractedObjectHelper
 
 class M_DrawIndexed:
 

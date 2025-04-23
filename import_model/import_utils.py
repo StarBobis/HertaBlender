@@ -6,6 +6,7 @@ from ..config.main_config import *
 from ..utils.json_utils import *
 from ..utils.migoto_utils import Fatal
 
+
 class DrawIBPair:
 
     def __init__(self):
@@ -14,7 +15,7 @@ class DrawIBPair:
 
 
 class ImportUtils:
-    # Get drawib list from Game's Config.json.
+    # Get drawib list from Config.json in current workspace.
     @classmethod
     def get_extract_drawib_list_from_workspace_config_json(cls) -> list[DrawIBPair]:
         workspace_path = MainConfig.path_workspace_folder()
@@ -22,12 +23,12 @@ class ImportUtils:
         game_config_path = os.path.join(workspace_path,"Config.json")
         game_config_json = JsonUtils.LoadFromFile(game_config_path)
  
-        # draw_ib_list =game_config_json["DrawIBList"]
         draw_ib_list = []
         for item in game_config_json:
             drawib_pair = DrawIBPair()
-            drawib_pair.AliasName = item["Alias"]
+
             drawib_pair.DrawIB =  item["DrawIB"]
+            drawib_pair.AliasName = item["Alias"]
 
             draw_ib_list.append(drawib_pair)
 
@@ -71,7 +72,6 @@ class ImportUtils:
                 final_import_folder_path_dict[draw_ib + "_" + alias_name] = cpu_import_folder_path_list[0]
             else:
                 pass
-                # raise ImportError()
 
         return final_import_folder_path_dict
 
