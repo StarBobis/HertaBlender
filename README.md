@@ -17,7 +17,7 @@ Herta 的Blender插件.
 # 支持项目开发
 
 <a href="https://afdian.com/a/NicoMico666" target="_blank">
-  <img src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="在爱发电上支持项目开发" width="300">
+  <img src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="在爱发电上支持项目开发" width="150">
 </a>
 
 # 相似项目
