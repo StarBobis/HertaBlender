@@ -60,11 +60,13 @@ def import_shapekeys(mesh, obj, shapekeys):
 def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
     assert (len(blend_indices) == len(blend_weights))
     if blend_indices:
+
         # We will need to make sure we re-export the same blend indices later -
         # that they haven't been renumbered. Not positive whether it is better
         # to use the vertex group index, vertex group name or attach some extra
         # data. Make sure the indices and names match:
         if component is None:
+            # 继续使用旧代码逻辑
             num_vertex_groups = max(itertools.chain(*itertools.chain(*blend_indices.values()))) + 1
         else:
             num_vertex_groups = max(component.vg_map.values()) + 1
@@ -271,7 +273,12 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             for l in mesh.loops:
                 color_layer[l.index].color = list(data[l.vertex_index]) + [0] * (4 - len(data[l.vertex_index]))
         elif element.SemanticName.startswith("BLENDINDICES"):
-            blend_indices[element.SemanticIndex] = data
+            if data.ndim == 1:
+                # 如果data是一维数组，转换为包含元组的2D数组，用于处理只有一个R32_UINT的情况
+                data_2d = numpy.array([(x,) for x in data])
+                blend_indices[element.SemanticIndex] = data_2d
+            else:
+                blend_indices[element.SemanticIndex] = data
         elif element.SemanticName.startswith("BLENDWEIGHT"):
             blend_weights[element.SemanticIndex] = data
         elif element.SemanticName.startswith("TEXCOORD"):
@@ -293,11 +300,11 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
         print("检测到BLENDWEIGHTS为空，但是含有BLENDINDICES数据，特殊情况，默认补充1,0,0,0的BLENDWEIGHTS")
         tmpi = 0
         for blendindices_turple in blend_indices.values():
-            print(blendindices_turple)
+            # print(blendindices_turple)
             new_dict = []
             for indices in blendindices_turple:
                 new_dict.append((1.0,0,0,0))
-            blend_weights[tmpi] = tuple(new_dict)
+            blend_weights[tmpi] = new_dict
             tmpi = tmpi + 1
 
     import_uv_layers(mesh, obj, texcoords)
