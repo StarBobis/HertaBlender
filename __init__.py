@@ -119,7 +119,7 @@ bl_info = {
     "name": "Herta",
     "description": "A simple blender plugin for generate 3Dmigoto mod.",
     "blender": (3, 6, 0),
-    "version": (1, 0, 4),
+    "version": (1, 0, 5),
     "location": "View3D",
     "category": "Generic",
     "tracker_url":"https://github.com/StarBobis/Herta"
@@ -193,6 +193,8 @@ def unregister():
 
     bpy.types.VIEW3D_MT_object_context_menu.remove(menu_func_migoto_right_click)
     bpy.types.OUTLINER_MT_collection.remove(menu_dbmt_mark_collection_switch)
+
+    bpy.utils.unregister_class(HertaUpdatePreference)
 
 if __name__ == "__main__":
     register()
