@@ -70,13 +70,22 @@ class BufferDataConverter:
             # Ignore zero weight
             if weight == 0:
                 continue
+
             weight = weight / total * 255
             # Ignore weight below minimal precision (1/255)
             if weight < 1:
                 normalized_weights[idx] = 0
                 continue
+
             # Strip float part from the weight
-            int_weight = int(weight)
+            int_weight = 0
+
+            # 增加对于NaN的处理，直接跳过不处理
+            if math.isnan(weight):
+                continue
+            else:
+                int_weight = int(weight)
+
             normalized_weights[idx] = int_weight
             # Reduce precision_error by the integer weight value
             precision_error -= int_weight
@@ -105,9 +114,25 @@ class BufferDataConverter:
         result = numpy.zeros_like(input_array, dtype=numpy.uint8)
 
         for i in range(input_array.shape[0]):
-            # 对每一行调用 normalize_weights 方法
-            row_normalized = cls.normalize_weights(input_array[i])
-            result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
+
+            weights = input_array[i]
+
+            # 如果权重含有NaN值，则将该行的所有值设置为0。
+            # 因为权重只要是被刷过，就不会出现NaN值。
+            find_nan = False
+            for w in weights:
+                if math.isnan(w):
+                    row_normalized = [0, 0, 0, 0]
+                    result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
+                    find_nan = True
+                    break
+                    # print(weights)
+                    # raise Fatal("NaN found in weights")
+            
+            if not find_nan:
+                # 对每一行调用 normalize_weights 方法
+                row_normalized = cls.normalize_weights(input_array[i])
+                result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
 
         return result
     
@@ -660,6 +685,7 @@ def get_buffer_ib_vb_fast(d3d11GameType:D3D11GameType):
 
     obj = ObjUtils.get_bpy_context_object()
     buffer_model.check_and_verify_attributes(obj)
+    print("正在处理: " + obj.name)
     
     # Nico: 通过evaluated_get获取到的是一个新的mesh，用于导出，不影响原始Mesh
     mesh = obj.evaluated_get(bpy.context.evaluated_depsgraph_get()).to_mesh()
