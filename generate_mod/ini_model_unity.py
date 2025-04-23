@@ -130,7 +130,7 @@ class M_UnityIniModel:
             style_part_name = "Component" + part_name
 
             
-            texture_override_name_suffix = "IB_" + MainConfig.workspacename + "_" + draw_ib_model.draw_ib_alias + "_" + style_part_name
+            texture_override_name_suffix = "IB_" + draw_ib + "_" + draw_ib_model.draw_ib_alias + "_" + style_part_name
 
             # 读取使用的IBResourceName，如果读取不到，就使用默认的
             ib_resource_name = ""
