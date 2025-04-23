@@ -1,22 +1,30 @@
 # Herta-Blender
 
-Herta's Blender Plugin.
-# Usage
+Herta 的Blender插件.
 
-- Blender 3.6LTS to 4.2LTS
+# 使用方法
 
-# Features
-- Support multiple games but simple and easy and same way to use.
-- Extremely fast speed for both model import and mod generate.
-- Auto update with a simple click.
+- Blender 3.6LTS 到 4.2LTS
+- 第一次安装需要自己打包源代码为zip文件安装，注意不能出现横杠-或点.否则可能导致安装插件失败，后续更新可以在面板中一键更新。
 
-# Support Dev
+# 核心特性
+
+- 纯正中文支持。
+- 支持多个游戏，但只需一套相同且简单的用法。
+- 极快的模型导入和Mod生成速度。
+- 一键与定期自动更新。
+
+# 支持项目开发
+
+感谢您的支持！
 
 [![在爱发电上支持我](https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png)](https://afdian.com/a/NicoMico666)
 
 
-# References
-Herta's code learns from these projects:
+# 相似项目
+
+Herta插件的代码从如下项目中获得灵感并进行了大量学习与改进:
+
 - https://github.com/bo3b/3Dmigoto
 - https://github.com/DarkStarSword/3d-fixes
 - https://github.com/leotorrez/LeoTools
@@ -25,4 +33,4 @@ Herta's code learns from these projects:
 - https://github.com/SilentNightSound/GI-Model-Importer
 - https://github.com/CGCookie/blender-addon-updater
 
-Thansk for their great code!
+感谢他们伟大的代码！
