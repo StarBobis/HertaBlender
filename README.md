@@ -10,6 +10,11 @@ Herta's Blender Plugin.
 - Extremely fast speed for both model import and mod generate.
 - Auto update with a simple click.
 
+# Support Dev
+
+[![在爱发电上支持我](https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png)](https://afdian.com/a/NicoMico666)
+
+
 # References
 Herta's code learns from these projects:
 - https://github.com/bo3b/3Dmigoto
