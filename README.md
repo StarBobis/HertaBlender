@@ -5,7 +5,7 @@ Herta 的Blender插件.
 # 使用方法
 
 - 目前支持包括Blender 3.6LTS 到 4.2LTS的所有版本，优先建议4.2LTS。
-- 第一次安装需要自己打包源代码为zip文件安装，注意不能出现横杠-或点.否则可能导致安装插件失败，后续更新可以在面板中一键更新。
+- 第一次安装需要自己打包源代码为zip文件安装，注意打包的文件夹和打包后的zip文件名中均不能出现横杠-或点.否则可能导致安装插件失败，后续更新可以在面板中一键更新。
 
 # 核心特性
 
@@ -17,7 +17,7 @@ Herta 的Blender插件.
 # 支持项目开发
 
 <a href="https://afdian.com/a/NicoMico666" target="_blank">
-  <img src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="在爱发电上支持项目开发" width="150">
+  <img src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" width="150">
 </a>
 
 # 相似项目
