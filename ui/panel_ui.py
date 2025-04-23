@@ -127,7 +127,7 @@ class PanelGenerateModConfig(bpy.types.Panel):
             
 
 class PanelButtons(bpy.types.Panel):
-    bl_label = "使用指定DBMT路径" 
+    bl_label = "Herta基础面板" 
     bl_idname = "VIEW3D_PT_CATTER_Buttons_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -166,6 +166,9 @@ class PanelButtons(bpy.types.Panel):
 
         if MainConfig.gamename == "HSR" or MainConfig.gamename == "AILIMIT":
             layout.operator("dbmt.export_mod_hsr_32",text="生成XXMI格式Mod",icon='EXPORT')
+        elif MainConfig.gamename == "WWMI":
+            layout.operator("dbmt.export_unreal_vs_mod_to_workspace")
+            layout.operator("herta.export_mod_wwmi",text="生成WWMI格式Mod(仅开发测试使用)",icon='EXPORT')
         else:
             if MainConfig.get_game_category() == GameCategory.UnityVS:
                 layout.operator("dbmt.export_unity_vs_mod_to_workspace_seperated")

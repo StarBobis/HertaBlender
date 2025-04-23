@@ -85,6 +85,7 @@ register_classes = (
     DBMTExportUnityCSModToWorkSpaceSeperated,
     DBMTExportUnrealVSModToWorkSpace,
     DBMTExportUnrealCSModToWorkSpace,
+    GenerateModWWMI,
 
     # 右键菜单栏
     RemoveAllVertexGroupOperator,

@@ -55,15 +55,17 @@ class ModelCollection:
 # 这个代表了一个DrawIB的Mod导出模型
 # 后面的Mod导出都可以调用这个模型来进行业务逻辑部分
 '''
-TODO 这种DrawIBModel的形式，无法实现方便的架构变更
-目前的思路是创建另一个WWMI专用的DrawIBModel，然后在开发过程中把通用的方法抽象成工具类型。
+TODO 
+由于WWMI有形态键，要想支持自定义形态键，我们就不得不先对obj进行融合得到统一的一个obj
+然后在这个obj上进行操作，这样才能保证形态键索引的正确性，否则只能受限于分部位形态键。
 '''
-class DrawIBModel:
+class DrawIBModelWWMI:
     # 通过default_factory让每个类的实例的变量分割开来，不再共享类的静态变量
     def __init__(self,draw_ib_collection,merge_objects:bool):
         '''
         根据3Dmigoto的架构设计，每个DrawIB都是一个独立的Mod
         '''
+        # 从集合名称中获取当前DrawIB和别名
         drawib_collection_name_splits = CollectionUtils.get_clean_collection_name(draw_ib_collection.name).split("_")
         self.draw_ib = drawib_collection_name_splits[0]
         self.draw_ib_alias = drawib_collection_name_splits[1]
