@@ -30,6 +30,12 @@ class CatterProperties_ImportModel_General(bpy.types.PropertyGroup):
         default=False
     ) # type: ignore
 
+    import_flip_scale_y :bpy.props.BoolProperty(
+        name="设置Scale的Y分量为-1来改变模型朝向",
+        description="勾选后在导入模型时把缩放的Y分量乘以-1，实现改变朝向效果，主要用于方便后续绑MMD骨",
+        default=False
+    ) # type: ignore
+
 
 class CatterProperties_ImportModel_Unreal(bpy.types.PropertyGroup):
     import_merged_vgmap:bpy.props.BoolProperty(

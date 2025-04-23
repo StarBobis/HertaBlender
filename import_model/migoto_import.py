@@ -344,6 +344,8 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     # 导入时翻转模型
     if ImportModelConfig.import_flip_scale_x():
         obj.scale.x = obj.scale.x * -1
+    if ImportModelConfig.import_flip_scale_y():
+        obj.scale.y = obj.scale.y * -1
 
     return obj
 

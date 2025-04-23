@@ -175,6 +175,13 @@ class ImportModelConfig:
         bpy.context.scene.dbmt.import_flip_scale_x
         '''
         return bpy.context.scene.dbmt.import_flip_scale_x
+
+    @classmethod
+    def import_flip_scale_y(cls):
+        '''
+        bpy.context.scene.dbmt.import_flip_scale_y
+        '''
+        return bpy.context.scene.dbmt.import_flip_scale_y
     
     @classmethod
     def path(cls):

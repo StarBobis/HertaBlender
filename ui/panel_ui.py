@@ -89,6 +89,7 @@ class PanelModelImportConfig(bpy.types.Panel):
         layout = self.layout
         layout.prop(context.scene.dbmt,"model_scale",text="模型导入大小比例")
         layout.prop(context.scene.dbmt,"import_flip_scale_x",text="设置Scale的X分量为-1避免模型镜像")
+        layout.prop(context.scene.dbmt,"import_flip_scale_y",text="设置Scale的Y分量为-1来改变模型朝向")
 
         if MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS:
             layout.prop(context.scene.dbmt_import_config_unreal,"import_merged_vgmap",text="使用融合统一顶点组")
