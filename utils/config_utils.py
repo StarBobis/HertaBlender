@@ -3,8 +3,8 @@ import bpy
 import json
 import subprocess
 from ..config.main_config import *
-from ..utils.json_utils import *
-from ..utils.migoto_utils import Fatal
+from .json_utils import *
+from .migoto_utils import Fatal
 
 
 class DrawIBPair:
@@ -14,10 +14,12 @@ class DrawIBPair:
         self.AliasName = ""
 
 
-class ImportUtils:
-    # Get drawib list from Config.json in current workspace.
+class ConfigUtils:
     @classmethod
     def get_extract_drawib_list_from_workspace_config_json(cls) -> list[DrawIBPair]:
+        '''
+        从当前工作空间的Config.json中读取DrawIB列表
+        '''
         workspace_path = GlobalConfig.path_workspace_folder()
 
         game_config_path = os.path.join(workspace_path,"Config.json")
@@ -39,7 +41,7 @@ class ImportUtils:
     def get_import_drawib_aliasname_folder_path_dict_with_first_match_type(cls)->list:
         output_folder_path = GlobalConfig.path_workspace_folder()
         
-        draw_ib_list= ImportUtils.get_extract_drawib_list_from_workspace_config_json()
+        draw_ib_list= ConfigUtils.get_extract_drawib_list_from_workspace_config_json()
         
         final_import_folder_path_dict = {}
 
@@ -76,10 +78,11 @@ class ImportUtils:
         return final_import_folder_path_dict
 
 
-    # Read import model name list from tmp.json.
     @classmethod
     def get_prefix_list_from_tmp_json(cls,import_folder_path:str) ->list:
-        
+        '''
+        从tmp.json中读取要从工作空间中一键导入的模型的名称前缀
+        '''
         tmp_json_path = os.path.join(import_folder_path, "tmp.json")
 
         drawib = os.path.basename(import_folder_path)
@@ -127,3 +130,5 @@ class ImportUtils:
                     return line.split(':')[1].strip()  
         return ""  
 
+
+    

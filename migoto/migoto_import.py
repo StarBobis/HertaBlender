@@ -1,5 +1,5 @@
-from .import_utils import *
-from ..migoto.migoto_format import *
+from ..utils.config_utils import *
+from .migoto_format import *
 from ..utils.collection_utils import *
 from ..config.main_config import *
 from ..config.properties_wwmi import Properties_WWMI
@@ -380,7 +380,7 @@ class Import3DMigotoRaw(bpy.types.Operator, ImportHelper):
     ) # type: ignore
 
     def get_vb_ib_paths_from_fmt_prefix(self, filename):
-        model_prefix = ImportUtils.get_model_prefix_from_fmt_file(filename).strip()
+        model_prefix = ConfigUtils.get_model_prefix_from_fmt_file(filename).strip()
         # print("model_prefix:" + model_prefix)
 
         fmt_dir_name = os.path.dirname(filename)
@@ -457,7 +457,7 @@ class Import3DMigotoRaw(bpy.types.Operator, ImportHelper):
 
 
 def ImprotFromWorkSpace(self, context):
-    import_drawib_aliasname_folder_path_dict = ImportUtils.get_import_drawib_aliasname_folder_path_dict_with_first_match_type()
+    import_drawib_aliasname_folder_path_dict = ConfigUtils.get_import_drawib_aliasname_folder_path_dict_with_first_match_type()
     print(import_drawib_aliasname_folder_path_dict)
 
     workspace_collection = CollectionUtils.new_workspace_collection()
@@ -465,7 +465,7 @@ def ImprotFromWorkSpace(self, context):
     # 读取时保存每个DrawIB对应的GameType名称到工作空间文件夹下面的Import.json，在导出时使用
     draw_ib_gametypename_dict = {}
     for draw_ib_aliasname,import_folder_path in import_drawib_aliasname_folder_path_dict.items():
-        tmp_json = ImportUtils.read_tmp_json(import_folder_path)
+        tmp_json = ConfigUtils.read_tmp_json(import_folder_path)
         work_game_type = tmp_json.get("WorkGameType","")
         draw_ib = draw_ib_aliasname.split("_")[0]
         draw_ib_gametypename_dict[draw_ib] = work_game_type
@@ -477,7 +477,7 @@ def ImprotFromWorkSpace(self, context):
 
     # 开始读取模型数据
     for draw_ib_aliasname,import_folder_path in import_drawib_aliasname_folder_path_dict.items():
-        import_prefix_list = ImportUtils.get_prefix_list_from_tmp_json(import_folder_path)
+        import_prefix_list = ConfigUtils.get_prefix_list_from_tmp_json(import_folder_path)
         if len(import_prefix_list) == 0:
             self.report({'ERROR'},"当前output文件夹"+draw_ib_aliasname+"中的内容暂不支持一键导入分支模型")
             continue

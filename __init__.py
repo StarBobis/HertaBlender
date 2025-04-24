@@ -13,7 +13,7 @@ from .config.properties_import_model import Properties_ImportModel
 from .config.properties_generate_mod import Properties_GenerateMod
 from .config.properties_wwmi import Properties_WWMI
 
-from .import_model.migoto_import import *
+from .migoto.migoto_import import *
 
 
 '''
