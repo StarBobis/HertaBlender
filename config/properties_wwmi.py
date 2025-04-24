@@ -29,3 +29,16 @@ class Properties_WWMI(bpy.types.PropertyGroup):
         '''
         return bpy.context.scene.properties_wwmi.ignore_muted_shape_keys
     
+    # apply_all_modifiers
+    apply_all_modifiers:bpy.props.BoolProperty(
+        name="应用所有修改器",
+        description="勾选此项后，生成Mod之前会自动对物体应用所有修改器",
+        default=False
+    ) # type: ignore
+    
+    @classmethod
+    def apply_all_modifiers(cls):
+        '''
+        bpy.context.scene.properties_wwmi.apply_all_modifiers
+        '''
+        return bpy.context.scene.properties_wwmi.apply_all_modifiers

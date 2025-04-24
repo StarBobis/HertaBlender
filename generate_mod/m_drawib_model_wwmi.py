@@ -29,6 +29,36 @@ import bpy
 import bmesh
 
 
+class M_DrawIndexed:
+
+    def __init__(self) -> None:
+        self.DrawNumber = ""
+
+        # 绘制起始位置
+        self.DrawOffsetIndex = "" 
+
+        self.DrawStartIndex = "0"
+
+        # 代表一个obj具体的draw_indexed
+        self.AliasName = "" 
+
+        # 代表这个obj的顶点数
+        self.UniqueVertexCount = 0 
+    
+    def get_draw_str(self) ->str:
+        return "drawindexed = " + self.DrawNumber + "," + self.DrawOffsetIndex +  "," + self.DrawStartIndex
+
+
+class TextureReplace:
+    def  __init__(self):
+        self.resource_name = ""
+        self.filter_index = 0
+        self.hash = ""
+        self.style = ""
+        
+
+
+
 def apply_modifiers_for_object_with_shape_keys(context, selectedModifiers, disable_armatures):
     # ------------------------------------------------------------------------------
     # The MIT License (MIT)
@@ -650,7 +680,6 @@ class MergedObject:
     mesh: bpy.types.Mesh
     components: List[MergedObjectComponent]
     shapekeys: MergedObjectShapeKeys
-    skeleton_type: SkeletonType
     vertex_count: int = 0
     index_count: int = 0
     vg_count: int = 0
@@ -665,280 +694,166 @@ def copy_object(context, obj, name=None, collection=None):
             link_object_to_collection(new_obj, collection)
         return new_obj
 
-# Copied from WWMI-Tools and modified for our needs.
-@dataclass
-class ObjectMerger:
-    # Input
-    context: bpy.types.Context
-    extracted_object: ExtractedObject
-    ignore_hidden_objects: bool
-    apply_modifiers: bool
-    collection: str
-    skeleton_type: SkeletonType
-    # Output
-    merged_object: MergedObject = field(init=False)
 
-    def __post_init__(self):
-        # 1.Initialize components
-        self.components = []
-        for component_id, component in enumerate(self.extracted_object.components): 
-            self.components.append(
-                MergedObjectComponent(
-                    objects=[],
-                    index_count=0,
-                )
+def build_merged_object(extracted_object:ExtractedObject,draw_ib_collection, componentname_modelcollection_list_dict:dict[str,list[ModelCollection]]):
+    # 1.Initialize components
+    components = []
+    for component in extracted_object.components: 
+        components.append(
+            MergedObjectComponent(
+                objects=[],
+                index_count=0,
             )
-        
-        # 2.import_objects_from_collection
-        component_pattern = re.compile(r'.*component[_ -]*(\d+).*')
-        # TODO 从这里开始进行修改
-        # 这里是获取所有的obj，需要用咱们的方法来进行集合架构的遍历获取所有的obj
-
-        for obj in get_collection_objects(self.collection):
-            # 跳过不满足component开头的对象
-            match = component_pattern.findall(obj.name.lower())
-            if len(match) == 0:
-                continue
-            component_id = int(match[0])
-            
-            temp_obj = copy_object(self.context, obj, name=f'TEMP_{obj.name}', collection=self.collection)
-
-            self.components[component_id].objects.append(TempObject(
-                name=obj.name,
-                object=temp_obj,
-            ))
-
-        self.prepare_temp_objects()
-        self.build_merged_object()
-
-
-    def prepare_temp_objects(self):
-
-        index_offset = 0
-
-        for component_id, component in enumerate(self.components):
-
-            component.objects.sort(key=lambda x: x.name)
-
-            for temp_object in component.objects:
-                temp_obj = temp_object.object
-                # Remove muted shape keys
-                if Properties_WWMI.ignore_muted_shape_keys() and temp_obj.data.shape_keys:
-                    muted_shape_keys = []
-                    for shapekey_id in range(len(temp_obj.data.shape_keys.key_blocks)):
-                        shape_key = temp_obj.data.shape_keys.key_blocks[shapekey_id]
-                        if shape_key.mute:
-                            muted_shape_keys.append(shape_key)
-                    for shape_key in muted_shape_keys:
-                        temp_obj.shape_key_remove(shape_key)
-                # Apply all modifiers to temporary object
-                if self.apply_modifiers:
-                    with OpenObject(self.context, temp_obj) as obj:
-                        selected_modifiers = [modifier.name for modifier in get_modifiers(obj)]
-                        apply_modifiers_for_object_with_shape_keys(self.context, selected_modifiers, None)
-                # Triangulate temporary object, this step is crucial as export supports only triangles
-                triangulate_object(self.context, temp_obj)
-                # Handle Vertex Groups
-                vertex_groups = get_vertex_groups(temp_obj)
-                # Remove ignored or unexpected vertex groups
-                if self.skeleton_type == SkeletonType.Merged:
-                    # Exclude VGs with 'ignore' tag or with higher id VG count from Metadata.ini for current component
-                    total_vg_count = sum([component.vg_count for component in self.extracted_object.components])
-                    ignore_list = [vg for vg in vertex_groups if 'ignore' in vg.name.lower() or vg.index >= total_vg_count]
-                elif self.skeleton_type == SkeletonType.PerComponent:
-                    # Exclude VGs with 'ignore' tag or with higher id VG count from Metadata.ini for current component
-                    extracted_component = self.extracted_object.components[component_id]
-                    total_vg_count = len(extracted_component.vg_map)
-                    ignore_list = [vg for vg in vertex_groups if 'ignore' in vg.name.lower() or vg.index >= total_vg_count]
-                remove_vertex_groups(temp_obj, ignore_list)
-                # Rename VGs to their indicies to merge ones of different components together
-                for vg in get_vertex_groups(temp_obj):
-                    vg.name = str(vg.index)
-                # Calculate vertex count of temporary object
-                temp_object.vertex_count = len(temp_obj.data.vertices)
-                # Calculate index count of temporary object, IB stores 3 indices per triangle
-                temp_object.index_count = len(temp_obj.data.polygons) * 3
-                # Set index offset of temporary object to global index_offset
-                temp_object.index_offset = index_offset
-                # Update global index_offset
-                index_offset += temp_object.index_count
-                # Update vertex and index count of custom component
-                component.vertex_count += temp_object.vertex_count
-                component.index_count += temp_object.index_count
-
-    def build_merged_object(self):
-
-        merged_object = []
-        vertex_count, index_count = 0, 0
-        for component in self.components:
-            for temp_object in component.objects:
-                merged_object.append(temp_object.object)
-            vertex_count += component.vertex_count
-            index_count += component.index_count
-            
-        join_objects(self.context, merged_object)
-
-        obj = merged_object[0]
-
-        rename_object(obj, 'TEMP_EXPORT_OBJECT')
-
-        deselect_all_objects()
-        select_object(obj)
-        set_active_object(bpy.context, obj)
-
-        mesh = obj.evaluated_get(self.context.evaluated_depsgraph_get()).to_mesh()
-
-        self.merged_object = MergedObject(
-            object=obj,
-            mesh=mesh,
-            components=self.components,
-            vertex_count=len(obj.data.vertices),
-            index_count=len(obj.data.polygons) * 3,
-            vg_count=len(get_vertex_groups(obj)),
-            shapekeys=MergedObjectShapeKeys(),
-            skeleton_type=self.skeleton_type,
         )
-
-        if vertex_count != self.merged_object.vertex_count:
-            raise ValueError('vertex_count mismatch between merged object and its components')
-
-        if index_count != self.merged_object.index_count:
-            raise ValueError('index_count mismatch between merged object and its components')
-
-
-class M_DrawIndexed:
-
-    def __init__(self) -> None:
-        self.DrawNumber = ""
-
-        # 绘制起始位置
-        self.DrawOffsetIndex = "" 
-
-        self.DrawStartIndex = "0"
-
-        # 代表一个obj具体的draw_indexed
-        self.AliasName = "" 
-
-        # 代表这个obj的顶点数
-        self.UniqueVertexCount = 0 
     
-    def get_draw_str(self) ->str:
-        return "drawindexed = " + self.DrawNumber + "," + self.DrawOffsetIndex +  "," + self.DrawStartIndex
+    # 2.import_objects_from_collection
+    # TODO 从这里开始进行修改
+    # 这里是获取所有的obj，需要用咱们的方法来进行集合架构的遍历获取所有的obj
 
+    for component_name,model_collection_list in componentname_modelcollection_list_dict.items():
+        for model_collection in model_collection_list:
+            for obj_name in model_collection.obj_name_list:
+                obj = bpy.data.objects.get(obj_name)
+                # 跳过不满足component开头的对象
 
-class TextureReplace:
-    def  __init__(self):
-        self.resource_name = ""
-        self.filter_index = 0
-        self.hash = ""
-        self.style = ""
+                print("ComponentName: " + component_name)
+                component_count = str(component_name)[10:]
+                print("ComponentCount: " + component_count)
+
+                component_id = int(component_count) - 1 # 这里减去1是因为我们的Compoennt是从1开始的
+                
+                temp_obj = copy_object(bpy.context, obj, name=f'TEMP_{obj.name}', collection=draw_ib_collection)
+
+                components[component_id].objects.append(TempObject(
+                    name=obj.name,
+                    object=temp_obj,
+                ))
+
+    # 3.准备临时对象
+    index_offset = 0
+
+    for component_id, component in enumerate(components):
+
+        component.objects.sort(key=lambda x: x.name)
+
+        for temp_object in component.objects:
+            temp_obj = temp_object.object
+            # Remove muted shape keys
+            if Properties_WWMI.ignore_muted_shape_keys() and temp_obj.data.shape_keys:
+                muted_shape_keys = []
+                for shapekey_id in range(len(temp_obj.data.shape_keys.key_blocks)):
+                    shape_key = temp_obj.data.shape_keys.key_blocks[shapekey_id]
+                    if shape_key.mute:
+                        muted_shape_keys.append(shape_key)
+                for shape_key in muted_shape_keys:
+                    temp_obj.shape_key_remove(shape_key)
+            # Apply all modifiers to temporary object
+            if Properties_WWMI.apply_all_modifiers():
+                with OpenObject(bpy.context, temp_obj) as obj:
+                    selected_modifiers = [modifier.name for modifier in get_modifiers(obj)]
+                    apply_modifiers_for_object_with_shape_keys(bpy.context, selected_modifiers, None)
+            # Triangulate temporary object, this step is crucial as export supports only triangles
+            triangulate_object(bpy.context, temp_obj)
+            # Handle Vertex Groups
+            vertex_groups = get_vertex_groups(temp_obj)
+            # Remove ignored or unexpected vertex groups
+            if Properties_WWMI.import_merged_vgmap():
+                # Exclude VGs with 'ignore' tag or with higher id VG count from Metadata.ini for current component
+                total_vg_count = sum([component.vg_count for component in extracted_object.components])
+                ignore_list = [vg for vg in vertex_groups if 'ignore' in vg.name.lower() or vg.index >= total_vg_count]
+            else:
+                # Exclude VGs with 'ignore' tag or with higher id VG count from Metadata.ini for current component
+                extracted_component = extracted_object.components[component_id]
+                total_vg_count = len(extracted_component.vg_map)
+                ignore_list = [vg for vg in vertex_groups if 'ignore' in vg.name.lower() or vg.index >= total_vg_count]
+            remove_vertex_groups(temp_obj, ignore_list)
+            # Rename VGs to their indicies to merge ones of different components together
+            for vg in get_vertex_groups(temp_obj):
+                vg.name = str(vg.index)
+            # Calculate vertex count of temporary object
+            temp_object.vertex_count = len(temp_obj.data.vertices)
+            # Calculate index count of temporary object, IB stores 3 indices per triangle
+            temp_object.index_count = len(temp_obj.data.polygons) * 3
+            # Set index offset of temporary object to global index_offset
+            temp_object.index_offset = index_offset
+            # Update global index_offset
+            index_offset += temp_object.index_count
+            # Update vertex and index count of custom component
+            component.vertex_count += temp_object.vertex_count
+            component.index_count += temp_object.index_count
+
+    # build_merged_object:
+
+    merged_object = []
+    vertex_count, index_count = 0, 0
+    for component in components:
+        for temp_object in component.objects:
+            merged_object.append(temp_object.object)
+        vertex_count += component.vertex_count
+        index_count += component.index_count
         
+    join_objects(bpy.context, merged_object)
 
-class ModelCollection:
-    def __init__(self):
-        self.type = ""
-        self.model_collection_name = ""
-        self.obj_name_list = []
+    obj = merged_object[0]
+
+    rename_object(obj, 'TEMP_EXPORT_OBJECT')
+
+    deselect_all_objects()
+    select_object(obj)
+    set_active_object(bpy.context, obj)
+
+    mesh = obj.evaluated_get(bpy.context.evaluated_depsgraph_get()).to_mesh()
+
+    merged_object = MergedObject(
+        object=obj,
+        mesh=mesh,
+        components=components,
+        vertex_count=len(obj.data.vertices),
+        index_count=len(obj.data.polygons) * 3,
+        vg_count=len(get_vertex_groups(obj)),
+        shapekeys=MergedObjectShapeKeys(),
+    )
+
+    if vertex_count != merged_object.vertex_count:
+        raise ValueError('vertex_count mismatch between merged object and its components')
+
+    if index_count != merged_object.index_count:
+        raise ValueError('index_count mismatch between merged object and its components')
+    
+    return merged_object
 
 
-'''
-TODO 
-由于WWMI有形态键，要想支持自定义形态键，我们就不得不先对obj进行融合得到统一的一个obj
-然后在这个obj上进行操作，这样才能保证形态键索引的正确性，否则只能受限于分部位形态键。
-'''
-class DrawIBModelWWMI:
-    # 通过default_factory让每个类的实例的变量分割开来，不再共享类的静态变量
-    def __init__(self,draw_ib_collection,merge_objects:bool):
-        '''
-        根据3Dmigoto的架构设计，每个DrawIB都是一个独立的Mod
-        '''
-        # 从集合名称中获取当前DrawIB和别名
-        drawib_collection_name_splits = CollectionUtils.get_clean_collection_name(draw_ib_collection.name).split("_")
-        self.draw_ib = drawib_collection_name_splits[0]
-        self.draw_ib_alias = drawib_collection_name_splits[1]
 
-        # (1) 读取工作空间中配置文件的配置项
+class WorkSpaceConfig:
+    '''
+    在一键导入工作空间时，Import.json会记录导入的GameType，在生成Mod时需要用到
+    所以这里我们读取Import.json来确定要从哪个提取出来的数据类型文件夹中读取
+    然后读取tmp.json来初始化D3D11GameType
+    '''
+    def __init__(self,draw_ib:str):
+        self.draw_ib = draw_ib # DrawIB
+
         self.category_hash_dict = {}
+        self.import_model_list = []
         self.match_first_index_list = []
         self.part_name_list = []
+
         self.vertex_limit_hash = ""
-        self.extract_gametype_folder_path = ""
-        self.PartName_SlotTextureReplaceDict_Dict:dict[str,dict[str,TextureReplace]] = {} # 自动贴图配置项
+        self.work_game_type = ""
+
         self.TextureResource_Name_FileName_Dict:dict[str,str] = {} # 自动贴图配置项
-        self.d3d11GameType:D3D11GameType = None
-        self.extracted_object:ExtractedObject = None
+        self.PartName_SlotTextureReplaceDict_Dict:dict[str,dict[str,TextureReplace]] = {} # 自动贴图配置项
 
-        self.__read_config_from_workspace()
+        self.parse_attributes()
 
-        # (2) 解析集合架构，获得每个DrawIB中，每个Component对应的obj列表及其相关属性
-        self.componentname_modelcollection_list_dict:dict[str,list[ModelCollection]] = {}
-        self.__parse_drawib_collection_architecture(draw_ib_collection=draw_ib_collection)
-
-        # (3) 解析当前有多少个key
-        self.key_number = 0
-        self.__parse_key_number()
-
-        # (4) 根据之前解析集合架构的结果，读取obj对象内容到字典中
-        self.__obj_name_ib_dict:dict[str,list] = {} 
-        self.__obj_name_category_buffer_list_dict:dict[str,list] =  {} 
-        self.obj_name_drawindexed_dict:dict[str,M_DrawIndexed] = {} # 给每个obj的属性统计好，后面就能直接用了。
-        self.__obj_name_index_vertex_id_dict:dict[str,dict] = {} # 形态键功能必备
-        self.componentname_ibbuf_dict = {} # 所有Component共用一个IB文件。
-        self.__categoryname_bytelist_dict = {} # 每个Category都生成一个CategoryBuffer文件。
-
-        self.draw_number = 0 # 每个DrawIB都有总的顶点数，对应CategoryBuffer里的顶点数。
-        self.total_index_count = 0 # 每个DrawIB都有总的IndexCount数，也就是所有的IB中的所有顶点索引数量
-
-        object_merger = ObjectMerger(
-            extracted_object=self.extracted_object,
-            ignore_muted_shape_keys=self.cfg.ignore_muted_shape_keys,
-            apply_modifiers=self.cfg.apply_all_modifiers,
-            context=self.context,
-            collection=self.cfg.component_collection,
-            skeleton_type=SkeletonType.Merged if self.cfg.mod_skeleton_type == 'MERGED' else SkeletonType.PerComponent,
-        )
-
-        # TODO 执行下面这个方法之前，需要对obj进行融合处理，这里直接用WWMI-Tools里的代码融合就行了。
-        # TODO 此外export的方法也要进行修改，确保能接受融合好的临时obj
-        self.__parse_obj_name_ib_category_buffer_dict()
-        
-        self.__read_component_ib_buf_dict_merged()
-            
-        # 构建每个Category的VertexBuffer
-        self.__read_categoryname_bytelist_dict()
-
-        # WWMI专用，因为它非得用到metadata.json的东西
-        # 目前只有WWMI会需要读取ShapeKey数据
-        # 用于形态键导出
-        self.shapekey_offsets = []
-        self.shapekey_vertex_ids = []
-        self.shapekey_vertex_offsets = []
-
-        self.__read_shapekey_cateogry_buf_dict()
-        metadatajsonpath = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)  + "Metadata.json"
-        if os.path.exists(metadatajsonpath):
-            self.extracted_object = ExtractedObjectHelper.read_metadata(metadatajsonpath)
-
-        # (5) 导出Buffer文件，Export Index Buffer files, Category Buffer files. (And Export ShapeKey Buffer Files.(WWMI))
-        # 用于写出IB时使用
-        self.PartName_IBResourceName_Dict = {}
-        self.PartName_IBBufferFileName_Dict = {}
-        self.combine_partname_ib_resource_and_filename_dict()
-        self.write_buffer_files()
-    
-    def __read_config_from_workspace(self):
-        '''
-        在一键导入工作空间时，Import.json会记录导入的GameType，在生成Mod时需要用到
-        所以这里我们读取Import.json来确定要从哪个提取出来的数据类型文件夹中读取
-        然后读取tmp.json来初始化D3D11GameType
-        '''
+    def parse_attributes(self):
         workspace_import_json_path = os.path.join(GlobalConfig.path_workspace_folder(), "Import.json")
         draw_ib_gametypename_dict = JsonUtils.LoadFromFile(workspace_import_json_path)
         gametypename = draw_ib_gametypename_dict.get(self.draw_ib,"")
 
         # 新版本中，我们把数据类型的信息写到了tmp.json中，这样我们就能够读取tmp.json中的内容来决定生成Mod时的数据类型了。
-        self.extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=gametypename)
-        tmp_json_path = os.path.join(self.extract_gametype_folder_path,"tmp.json")
+        extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=gametypename)
+        tmp_json_path = os.path.join(extract_gametype_folder_path,"tmp.json")
         if os.path.exists(tmp_json_path):
             self.d3d11GameType:D3D11GameType = D3D11GameType(tmp_json_path)
         else:
@@ -948,8 +863,8 @@ class DrawIBModelWWMI:
         读取tmp.json中的内容，后续会用于生成Mod的ini文件
         需要在确定了D3D11GameType之后再执行
         '''
-        self.extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)
-        tmp_json_path = os.path.join(self.extract_gametype_folder_path,"tmp.json")
+        extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)
+        tmp_json_path = os.path.join(extract_gametype_folder_path,"tmp.json")
         tmp_json_dict = JsonUtils.LoadFromFile(tmp_json_path)
 
         self.category_hash_dict = tmp_json_dict["CategoryHash"]
@@ -987,69 +902,86 @@ class DrawIBModelWWMI:
                 self.TextureResource_Name_FileName_Dict[resource_name] = texture_filename
 
             self.PartName_SlotTextureReplaceDict_Dict[partname] = slot_texture_replace_dict
-    
-    def __parse_drawib_collection_architecture(self,draw_ib_collection):
-        '''
-        解析工作空间集合架构，得到方便后续访问使用的抽象数据类型ModelCollection。
-        '''
 
-        # LOG.info("DrawIB: " + self.draw_ib)
-        # LOG.info("Visiable: " + str(CollectionUtils.is_collection_visible(draw_ib_collection.name)))
+'''
+TODO 
+由于WWMI有形态键，要想支持自定义形态键，我们就不得不先对obj进行融合得到统一的一个obj
+然后在这个obj上进行操作，这样才能保证形态键索引的正确性，否则只能受限于分部位形态键。
+'''
+class DrawIBModelWWMI:
+    # 通过default_factory让每个类的实例的变量分割开来，不再共享类的静态变量
+    def __init__(self,draw_ib_collection,merge_objects:bool):
+        '''
+        根据3Dmigoto的架构设计，每个DrawIB都是一个独立的Mod
+        '''
+        # 从集合名称中获取当前DrawIB和别名
+        drawib_collection_name_splits = CollectionUtils.get_clean_collection_name(draw_ib_collection.name).split("_")
+        self.draw_ib = drawib_collection_name_splits[0]
+        self.draw_ib_alias = drawib_collection_name_splits[1]
+
+        # (1) 读取工作空间中配置文件的配置项
+        self.work_space_config = WorkSpaceConfig(draw_ib=self.draw_ib)
+        self.d3d11GameType:D3D11GameType = self.work_space_config.d3d11GameType
+        # 读取WWMI专属配置
+        self.extracted_object:ExtractedObject = None
+        metadatajsonpath = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)  + "Metadata.json"
+        if os.path.exists(metadatajsonpath):
+            self.extracted_object = ExtractedObjectHelper.read_metadata(metadatajsonpath)
 
         
-        for component_collection in draw_ib_collection.children:
-            # 从集合名称中获取导出后部位的名称，如果有.001这种自动添加的后缀则去除掉
-            component_name = CollectionUtils.get_clean_collection_name(component_collection.name)
+        # (2) 解析集合架构，获得每个DrawIB中，每个Component对应的obj列表及其相关属性
+        self.componentname_modelcollection_list_dict:dict[str,list[ModelCollection]] = CollectionUtils.parse_drawib_collection_architecture(draw_ib_collection=draw_ib_collection)
 
-            model_collection_list = []
-            for m_collection in component_collection.children:
-                # 如果模型不可见则跳过。
-                if not CollectionUtils.is_collection_visible(m_collection.name):
-                    LOG.info("Skip " + m_collection.name + " because it's invisiable.")
-                    continue
+        # (3) 解析当前有多少个key
+        self.key_number = CollectionUtils.parse_key_number(draw_ib_collection=draw_ib_collection)
 
-                # LOG.info("Current Processing Collection: " + m_collection.name)
+        # (4) 根据之前解析集合架构的结果，读取obj对象内容到字典中
+        self.__obj_name_ib_dict:dict[str,list] = {} 
+        self.__obj_name_category_buffer_list_dict:dict[str,list] =  {} 
+        self.obj_name_drawindexed_dict:dict[str,M_DrawIndexed] = {} # 给每个obj的属性统计好，后面就能直接用了。
+        self.__obj_name_index_vertex_id_dict:dict[str,dict] = {} # 形态键功能必备
+        self.componentname_ibbuf_dict = {} # 所有Component共用一个IB文件。
+        self.__categoryname_bytelist_dict = {} # 每个Category都生成一个CategoryBuffer文件。
 
-                # 声明一个model_collection对象
-                model_collection = ModelCollection()
-                model_collection.model_collection_name = m_collection.name
+        self.draw_number = 0 # 每个DrawIB都有总的顶点数，对应CategoryBuffer里的顶点数。
+        self.total_index_count = 0 # 每个DrawIB都有总的IndexCount数，也就是所有的IB中的所有顶点索引数量
 
-                # 先根据颜色确定是什么类型的集合 03黄色是开关 04绿色是分支
-                model_collection_type = "default"
-                if m_collection.color_tag == "COLOR_03":
-                    model_collection_type = "switch"
-                elif m_collection.color_tag == "COLOR_04":
-                    model_collection_type = "toggle"
-                model_collection.type = model_collection_type
+        self.merged_object = build_merged_object(
+            extracted_object=self.extracted_object,
+            draw_ib_collection=draw_ib_collection,
+            componentname_modelcollection_list_dict=self.componentname_modelcollection_list_dict
+        )
 
-                # 集合中的模型列表
-                for obj in m_collection.objects:
-                    # 判断对象是否为网格对象，并且不是隐藏状态
-                    if obj.type == 'MESH' and obj.hide_get() == False:
-                        model_collection.obj_name_list.append(obj.name)
+        # print(self.merged_object)
+        # raise Fatal("暂停")
 
-                model_collection_list.append(model_collection)
-
-            self.componentname_modelcollection_list_dict[component_name] = model_collection_list
-
-    def __parse_key_number(self):
-        '''
-        提前统计好有多少个Key要声明
-        '''
-        tmp_number = 0
-        for model_collection_list in self.componentname_modelcollection_list_dict.values():
-            toggle_number = 0 # 切换
-            switch_number = 0 # 开关
-            for model_collection in model_collection_list:
-                if model_collection.type == "toggle":
-                    toggle_number = toggle_number + 1
-                elif model_collection.type == "switch":
-                    switch_number = switch_number + 1
+        # TODO 执行下面这个方法之前，需要对obj进行融合处理，这里直接用WWMI-Tools里的代码融合就行了。
+        # TODO 此外export的方法也要进行修改，确保能接受融合好的临时obj
+        self.__parse_obj_name_ib_category_buffer_dict()
+        
+        self.__read_component_ib_buf_dict_merged()
             
-            tmp_number = tmp_number + switch_number
-            if toggle_number >= 2:
-                tmp_number = tmp_number + 1
-        self.key_number = tmp_number
+        # 构建每个Category的VertexBuffer
+        self.__read_categoryname_bytelist_dict()
+
+        # WWMI专用，因为它非得用到metadata.json的东西
+        # 目前只有WWMI会需要读取ShapeKey数据
+        # 用于形态键导出
+        self.shapekey_offsets = []
+        self.shapekey_vertex_ids = []
+        self.shapekey_vertex_offsets = []
+
+        self.__read_shapekey_cateogry_buf_dict()
+       
+
+        # (5) 导出Buffer文件，Export Index Buffer files, Category Buffer files. (And Export ShapeKey Buffer Files.(WWMI))
+        # 用于写出IB时使用
+        self.PartName_IBResourceName_Dict = {}
+        self.PartName_IBBufferFileName_Dict = {}
+        self.combine_partname_ib_resource_and_filename_dict()
+        self.write_buffer_files()
+    
+
 
     def __parse_obj_name_ib_category_buffer_dict(self):
         '''

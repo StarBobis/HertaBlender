@@ -125,7 +125,9 @@ class PanelGenerateModConfig(bpy.types.Panel):
         elif GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS:
             layout.prop(context.scene.properties_generate_mod, "only_use_marked_texture",text="只使用标记过的贴图")
             layout.prop(context.scene.properties_generate_mod, "forbid_auto_texture_ini",text="禁止自动贴图流程")
-            layout.prop(context.scene.properties_generate_mod, "ignore_muted_shape_keys")
+            layout.prop(context.scene.properties_wwmi, "ignore_muted_shape_keys")
+            layout.prop(context.scene.properties_wwmi, "apply_all_modifiers")
+
             
 
 class PanelButtons(bpy.types.Panel):

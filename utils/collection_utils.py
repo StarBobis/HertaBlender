@@ -2,6 +2,13 @@ import bpy
 
 from ..config.main_config import GlobalConfig
 
+class ModelCollection:
+    def __init__(self):
+        self.type = ""
+        self.model_collection_name = ""
+        self.obj_name_list:list[str] = []
+
+
 class CollectionUtils:
 
     # Recursive select every object in a collection and it's sub collections.
@@ -63,6 +70,9 @@ class CollectionUtils:
     
     @classmethod
     def is_collection_visible(cls,collection_name:str):
+        '''
+        判断collection是否可见，可见的状态是不隐藏且勾选上
+        '''
         collection_property = CollectionUtils.get_collection_properties(collection_name)
 
         if collection_property is not None:
@@ -83,47 +93,6 @@ class CollectionUtils:
             return new_collection_name
         else:
             return collection_name
-        
-    
-    @classmethod
-    # 解析DrawIB为名称的集合，解析为export.json的dict字典形式
-    def parse_drawib_collection_to_export_json(cls,draw_ib_collection) -> dict:
-        export_json_dict = {}
-        for component_collection in draw_ib_collection.children:
-            # 从集合名称中获取导出后部位的名称，如果有.001这种自动添加的后缀则去除掉
-            component_name = CollectionUtils.get_clean_collection_name(component_collection.name)
-
-            component_collection_json = {}
-            for model_collection in component_collection.children:
-                # 如果模型不可见则跳过。
-                if not CollectionUtils.is_collection_visible(model_collection.name):
-                    continue
-
-                # 声明一个model_collection对象
-                model_collection_json = {}
-
-                # 先根据颜色确定是什么类型的集合 03黄色是开关 04绿色是分支
-                model_collection_type = "default"
-                if model_collection.color_tag == "COLOR_03":
-                    model_collection_type = "switch"
-                elif model_collection.color_tag == "COLOR_04":
-                    model_collection_type = "toggle"
-                model_collection_json["type"] = model_collection_type
-
-                # 集合中的模型列表
-                model_collection_obj_name_list = []
-                for obj in model_collection.objects:
-                    # 判断对象是否为网格对象，并且不是隐藏状态
-                    if obj.type == 'MESH' and obj.hide_get() == False:
-                        model_collection_obj_name_list.append(obj.name)
-                model_collection_json["model"] = model_collection_obj_name_list
-
-                # 集合的名称后面用作注释标记到ini文件中
-                component_collection_json[model_collection.name] = model_collection_json
-
-            export_json_dict[component_name] = component_collection_json
-
-        return export_json_dict
 
     @classmethod
     def new_workspace_collection(cls):
@@ -185,3 +154,69 @@ class CollectionUtils:
                     return "当前选中集合不是一个标准的分支模型集合，请检查您是否以分支集合方式导入了模型: " + component_collection.name + "未检测到任何子集合"
 
         return ""
+    
+    @classmethod
+    def parse_drawib_collection_architecture(cls,draw_ib_collection):
+        '''
+        解析工作空间集合架构，得到方便后续访问使用的抽象数据类型ModelCollection。
+        返回 componentname_modelcollection_list_dict
+        '''
+        componentname_modelcollection_list_dict:dict[str,list[ModelCollection]] = {}
+
+        for component_collection in draw_ib_collection.children:
+            # 从集合名称中获取导出后部位的名称，如果有.001这种自动添加的后缀则去除掉
+            component_name = CollectionUtils.get_clean_collection_name(component_collection.name)
+
+            model_collection_list = []
+            for m_collection in component_collection.children:
+                # 如果模型不可见则跳过。
+                if not CollectionUtils.is_collection_visible(m_collection.name):
+                    print("Skip " + m_collection.name + " because it's invisiable.")
+                    continue
+
+                # 声明一个model_collection对象
+                model_collection = ModelCollection()
+                model_collection.model_collection_name = m_collection.name
+
+                # 先根据颜色确定是什么类型的集合 03黄色是开关 04绿色是分支
+                model_collection_type = "default"
+                if m_collection.color_tag == "COLOR_03":
+                    model_collection_type = "switch"
+                elif m_collection.color_tag == "COLOR_04":
+                    model_collection_type = "toggle"
+                model_collection.type = model_collection_type
+
+                # 集合中的模型列表
+                for obj in m_collection.objects:
+                    # 判断对象是否为网格对象，并且不是隐藏状态
+                    if obj.type == 'MESH' and obj.hide_get() == False:
+                        model_collection.obj_name_list.append(obj.name)
+
+                model_collection_list.append(model_collection)
+
+            componentname_modelcollection_list_dict[component_name] = model_collection_list
+        
+        return componentname_modelcollection_list_dict
+    
+    @classmethod
+    def parse_key_number(cls,draw_ib_collection) -> int:
+        '''
+        提前统计好当前集合架构中有多少个Key要声明
+        '''
+        componentname_modelcollection_list_dict = cls.parse_drawib_collection_architecture(draw_ib_collection=draw_ib_collection)
+
+        tmp_number = 0
+        for model_collection_list in componentname_modelcollection_list_dict.values():
+            toggle_number = 0 # 切换
+            switch_number = 0 # 开关
+            for model_collection in model_collection_list:
+                if model_collection.type == "toggle":
+                    toggle_number = toggle_number + 1
+                elif model_collection.type == "switch":
+                    switch_number = switch_number + 1
+            
+            tmp_number = tmp_number + switch_number
+            if toggle_number >= 2:
+                tmp_number = tmp_number + 1
+        
+        return tmp_number
