@@ -126,7 +126,14 @@ class FMTFile:
     def get_dtype(self):
         fields = []
         for elemnt in self.elements:
-            fields.append((elemnt.ElementName, MigotoUtils.get_nptype_from_format(elemnt.Format), MigotoUtils.format_components(elemnt.Format)))
+            print("element: "+ elemnt.ElementName)
+            numpy_type = MigotoUtils.get_nptype_from_format(elemnt.Format)
+            size = MigotoUtils.format_components(elemnt.Format)
+
+            print(numpy_type)
+            print(size)
+
+            fields.append((elemnt.ElementName,numpy_type , size))
         dtype = numpy.dtype(fields)
         return dtype
 

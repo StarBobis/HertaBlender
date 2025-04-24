@@ -67,6 +67,8 @@ class MigotoUtils:
         '''
         转换效率极低，不建议使用
         有条件还是调用numpy的astype方法
+
+        奶奶滴，不经过这一层转换还不行呢，不转换数据是错的。
         '''
         if cls.f32_pattern.match(fmt):
             return (lambda data: b''.join(struct.pack('<f', x) for x in data),
@@ -109,6 +111,31 @@ class MigotoUtils:
                     lambda data: (numpy.frombuffer(data, numpy.int8) / 127.0).tolist())
         # print(fmt)
         raise Fatal('File uses an unsupported DXGI Format: %s' % fmt)
+    
+    @classmethod
+    def apply_format_conversion(cls, data, fmt):
+        if cls.unorm16_pattern.match(fmt):
+            encode_func = lambda x: numpy.around(x * 65535.0).astype(numpy.uint16)
+            decode_func = lambda x: (x / 65535.0).astype(numpy.float32)
+        elif cls.unorm8_pattern.match(fmt):
+            encode_func = lambda x: numpy.around(x * 255.0).astype(numpy.uint8)
+            decode_func = lambda x: (x / 255.0).astype(numpy.float32)
+        elif cls.snorm16_pattern.match(fmt):
+            encode_func = lambda x: numpy.around(x * 32767.0).astype(numpy.int16)
+            decode_func = lambda x: (x / 32767.0).astype(numpy.float32)
+        elif cls.snorm8_pattern.match(fmt):
+            encode_func = lambda x: numpy.around(x * 127.0).astype(numpy.int8)
+            decode_func = lambda x: (x / 127.0).astype(numpy.float32)
+        else:
+            return data  # 如果格式不匹配，直接返回原始数据
+
+        # 使用numpy.vectorize来对整个ndarray应用decode_func
+        vectorized_decode = numpy.vectorize(decode_func, otypes=[numpy.float32])
+
+        # 对输入数据应用转换
+        decoded_data = decode_func(data)
+
+        return decoded_data
 
 
     @classmethod

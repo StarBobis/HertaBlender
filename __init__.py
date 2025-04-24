@@ -44,6 +44,15 @@ https://github.com/BlackStartx/PyCharm-Blender-Plugin
 # 在插件架构发生大幅度变更时可能导致无法启动Blender，此时需要手动删掉插件缓存的这个软链接。
 # XXX 所有的文件夹都必须小写，因为git无法追踪文件夹名称大小写改变的记录
 
+bl_info = {
+    "name": "Herta",
+    "description": "A simple blender plugin for generate 3Dmigoto mod.",
+    "blender": (3, 6, 0),
+    "version": (1, 0, 8),
+    "location": "View3D",
+    "category": "Generic",
+    "tracker_url":"https://github.com/StarBobis/Herta"
+}
 
 class UpdaterPanel(bpy.types.Panel):
     """Update Panel"""
@@ -125,15 +134,7 @@ register_classes = (
 )
 
 
-bl_info = {
-    "name": "Herta",
-    "description": "A simple blender plugin for generate 3Dmigoto mod.",
-    "blender": (3, 6, 0),
-    "version": (1, 0, 7),
-    "location": "View3D",
-    "category": "Generic",
-    "tracker_url":"https://github.com/StarBobis/Herta"
-}
+
 
 
 class HertaUpdatePreference(bpy.types.AddonPreferences):

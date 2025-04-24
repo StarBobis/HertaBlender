@@ -108,7 +108,11 @@ class DrawIBModelWWMI:
                 self.__categoryname_bytelist_dict[category_name] = concatenated_array
 
         # 顺便计算一下步长得到总顶点数
-        self.draw_number = self.merged_object.vertex_count
+        position_stride = self.d3d11GameType.CategoryStrideDict["Position"]
+        position_bytelength = len(self.__categoryname_bytelist_dict["Position"])
+        self.draw_number = int(position_bytelength/position_stride)
+        print(self.draw_number)
+        print(self.merged_object.vertex_count)
 
         # 形态键数据
         self.shapekey_offsets = []

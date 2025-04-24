@@ -240,6 +240,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     ib_count = int(os.path.getsize(ib_path) / ib_stride)
     ib_polygon_count = int(ib_count / 3)
     ib_data = numpy.fromfile(ib_path, dtype=MigotoUtils.get_nptype_from_format(fmt_file.format), count=ib_count)
+
     mesh.loops.add(ib_count)
     mesh.polygons.add(ib_polygon_count)
     mesh.loops.foreach_set('vertex_index', ib_data)
@@ -262,6 +263,9 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
 
     for element in fmt_file.elements:
         data = vb_data[element.ElementName]
+
+        data = MigotoUtils.apply_format_conversion(data, element.Format)
+
         if element.SemanticName == "POSITION":
             if len(data[0]) == 4:
                 if ([x[3] for x in data] != [1.0] * len(data)):
