@@ -2,6 +2,8 @@ import bpy
 import json
 import math
 import bmesh
+import os
+
 
 from mathutils import Matrix 
 from mathutils import Vector
@@ -404,6 +406,9 @@ class ExtractedObjectHelper:
     '''
     @classmethod
     def read_metadata(cls,metadata_path: str) -> ExtractedObject:
+        if not os.path.exists(metadata_path):
+            raise Fatal("无法找到Metadata.json文件，请确认是否存在该文件。")
+        
         with open(metadata_path) as f:
             return ExtractedObject(**json.load(f))
     

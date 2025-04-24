@@ -82,11 +82,7 @@ class BufferDataConverter:
             # Strip float part from the weight
             int_weight = 0
 
-            # 增加对于NaN的处理，直接跳过不处理
-            if math.isnan(weight):
-                continue
-            else:
-                int_weight = int(weight)
+            int_weight = int(weight)
 
             normalized_weights[idx] = int_weight
             # Reduce precision_error by the integer weight value
@@ -122,14 +118,14 @@ class BufferDataConverter:
             # 如果权重含有NaN值，则将该行的所有值设置为0。
             # 因为权重只要是被刷过，就不会出现NaN值。
             find_nan = False
-            for w in weights:
-                if math.isnan(w):
-                    row_normalized = [0, 0, 0, 0]
-                    result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
-                    find_nan = True
-                    break
-                    # print(weights)
-                    # raise Fatal("NaN found in weights")
+            # for w in weights:
+            #     if math.isnan(w):
+            #         row_normalized = [0, 0, 0, 0]
+            #         result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
+            #         find_nan = True
+            #         break
+            #         # print(weights)
+            #         # raise Fatal("NaN found in weights")
             
             if not find_nan:
                 # 对每一行调用 normalize_weights 方法
@@ -680,7 +676,7 @@ class BufferModel:
 
 def get_buffer_ib_vb_fast(d3d11GameType:D3D11GameType):
     '''
-    使用Numpy直接从mesh中转换数据到目标格式Buffer
+    使用Numpy直接从当前选中的obj的mesh中转换数据到目标格式Buffer
     '''
     buffer_model = BufferModel(d3d11GameType=d3d11GameType)
 
