@@ -101,7 +101,7 @@ class DrawIBModel:
         self.total_index_count = 0 # 每个DrawIB都有总的IndexCount数，也就是所有的IB中的所有顶点索引数量
 
         self.__parse_obj_name_ib_category_buffer_dict()
-        if MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS: 
+        if GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS: 
             # UnrealVS目前只能一个IB
             self.__read_component_ib_buf_dict_merged()
         else:
@@ -116,9 +116,9 @@ class DrawIBModel:
         self.shapekey_offsets = []
         self.shapekey_vertex_ids = []
         self.shapekey_vertex_offsets = []
-        if MainConfig.gamename == "WWMI":
+        if GlobalConfig.gamename == "WWMI":
             self.__read_shapekey_cateogry_buf_dict()
-            metadatajsonpath = MainConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)  + "Metadata.json"
+            metadatajsonpath = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)  + "Metadata.json"
             if os.path.exists(metadatajsonpath):
                 self.extracted_object = ExtractedObjectHelper.read_metadata(metadatajsonpath)
 
@@ -135,12 +135,12 @@ class DrawIBModel:
         所以这里我们读取Import.json来确定要从哪个提取出来的数据类型文件夹中读取
         然后读取tmp.json来初始化D3D11GameType
         '''
-        workspace_import_json_path = os.path.join(MainConfig.path_workspace_folder(), "Import.json")
+        workspace_import_json_path = os.path.join(GlobalConfig.path_workspace_folder(), "Import.json")
         draw_ib_gametypename_dict = JsonUtils.LoadFromFile(workspace_import_json_path)
         gametypename = draw_ib_gametypename_dict.get(self.draw_ib,"")
 
         # 新版本中，我们把数据类型的信息写到了tmp.json中，这样我们就能够读取tmp.json中的内容来决定生成Mod时的数据类型了。
-        self.extract_gametype_folder_path = MainConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=gametypename)
+        self.extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=gametypename)
         tmp_json_path = os.path.join(self.extract_gametype_folder_path,"tmp.json")
         if os.path.exists(tmp_json_path):
             self.d3d11GameType:D3D11GameType = D3D11GameType(tmp_json_path)
@@ -151,7 +151,7 @@ class DrawIBModel:
         读取tmp.json中的内容，后续会用于生成Mod的ini文件
         需要在确定了D3D11GameType之后再执行
         '''
-        self.extract_gametype_folder_path = MainConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)
+        self.extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)
         tmp_json_path = os.path.join(self.extract_gametype_folder_path,"tmp.json")
         tmp_json_dict = JsonUtils.LoadFromFile(tmp_json_path)
 
@@ -587,7 +587,7 @@ class DrawIBModel:
         '''
         导出当前Mod的所有Buffer文件
         '''
-        buf_output_folder = MainConfig.path_generatemod_buffer_folder(draw_ib=self.draw_ib)
+        buf_output_folder = GlobalConfig.path_generatemod_buffer_folder(draw_ib=self.draw_ib)
         # print("Write Buffer Files::")
         # Export Index Buffer files.
         for partname in self.part_name_list:
@@ -604,7 +604,7 @@ class DrawIBModel:
                     ibf.write(packed_data) 
             
             # 这里break是因为WWMI只需要一个IB文件
-            if MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS: 
+            if GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS: 
                 break
             
         # print("Export Category Buffers::")

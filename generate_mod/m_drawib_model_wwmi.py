@@ -2,7 +2,7 @@ import numpy
 import struct
 import re
 from time import time
-
+from ..config.properties_wwmi import Properties_WWMI
 from .m_export import get_buffer_ib_vb_fast
 
 from ..migoto.migoto_format import *
@@ -672,7 +672,6 @@ class ObjectMerger:
     context: bpy.types.Context
     extracted_object: ExtractedObject
     ignore_hidden_objects: bool
-    ignore_muted_shape_keys: bool
     apply_modifiers: bool
     collection: str
     skeleton_type: SkeletonType
@@ -724,7 +723,7 @@ class ObjectMerger:
             for temp_object in component.objects:
                 temp_obj = temp_object.object
                 # Remove muted shape keys
-                if self.ignore_muted_shape_keys and temp_obj.data.shape_keys:
+                if Properties_WWMI.ignore_muted_shape_keys() and temp_obj.data.shape_keys:
                     muted_shape_keys = []
                     for shapekey_id in range(len(temp_obj.data.shape_keys.key_blocks)):
                         shape_key = temp_obj.data.shape_keys.key_blocks[shapekey_id]
@@ -890,6 +889,14 @@ class DrawIBModelWWMI:
         self.draw_number = 0 # 每个DrawIB都有总的顶点数，对应CategoryBuffer里的顶点数。
         self.total_index_count = 0 # 每个DrawIB都有总的IndexCount数，也就是所有的IB中的所有顶点索引数量
 
+        object_merger = ObjectMerger(
+            extracted_object=self.extracted_object,
+            ignore_muted_shape_keys=self.cfg.ignore_muted_shape_keys,
+            apply_modifiers=self.cfg.apply_all_modifiers,
+            context=self.context,
+            collection=self.cfg.component_collection,
+            skeleton_type=SkeletonType.Merged if self.cfg.mod_skeleton_type == 'MERGED' else SkeletonType.PerComponent,
+        )
 
         # TODO 执行下面这个方法之前，需要对obj进行融合处理，这里直接用WWMI-Tools里的代码融合就行了。
         # TODO 此外export的方法也要进行修改，确保能接受融合好的临时obj
@@ -908,7 +915,7 @@ class DrawIBModelWWMI:
         self.shapekey_vertex_offsets = []
 
         self.__read_shapekey_cateogry_buf_dict()
-        metadatajsonpath = MainConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)  + "Metadata.json"
+        metadatajsonpath = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)  + "Metadata.json"
         if os.path.exists(metadatajsonpath):
             self.extracted_object = ExtractedObjectHelper.read_metadata(metadatajsonpath)
 
@@ -925,12 +932,12 @@ class DrawIBModelWWMI:
         所以这里我们读取Import.json来确定要从哪个提取出来的数据类型文件夹中读取
         然后读取tmp.json来初始化D3D11GameType
         '''
-        workspace_import_json_path = os.path.join(MainConfig.path_workspace_folder(), "Import.json")
+        workspace_import_json_path = os.path.join(GlobalConfig.path_workspace_folder(), "Import.json")
         draw_ib_gametypename_dict = JsonUtils.LoadFromFile(workspace_import_json_path)
         gametypename = draw_ib_gametypename_dict.get(self.draw_ib,"")
 
         # 新版本中，我们把数据类型的信息写到了tmp.json中，这样我们就能够读取tmp.json中的内容来决定生成Mod时的数据类型了。
-        self.extract_gametype_folder_path = MainConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=gametypename)
+        self.extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=gametypename)
         tmp_json_path = os.path.join(self.extract_gametype_folder_path,"tmp.json")
         if os.path.exists(tmp_json_path):
             self.d3d11GameType:D3D11GameType = D3D11GameType(tmp_json_path)
@@ -941,7 +948,7 @@ class DrawIBModelWWMI:
         读取tmp.json中的内容，后续会用于生成Mod的ini文件
         需要在确定了D3D11GameType之后再执行
         '''
-        self.extract_gametype_folder_path = MainConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)
+        self.extract_gametype_folder_path = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)
         tmp_json_path = os.path.join(self.extract_gametype_folder_path,"tmp.json")
         tmp_json_dict = JsonUtils.LoadFromFile(tmp_json_path)
 
@@ -1319,7 +1326,7 @@ class DrawIBModelWWMI:
         '''
         导出当前Mod的所有Buffer文件
         '''
-        buf_output_folder = MainConfig.path_generatemod_buffer_folder(draw_ib=self.draw_ib)
+        buf_output_folder = GlobalConfig.path_generatemod_buffer_folder(draw_ib=self.draw_ib)
         # print("Write Buffer Files::")
         # Export Index Buffer files.
         for partname in self.part_name_list:
@@ -1336,7 +1343,7 @@ class DrawIBModelWWMI:
                     ibf.write(packed_data) 
             
             # 这里break是因为WWMI只需要一个IB文件
-            if MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS: 
+            if GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS: 
                 break
             
         # print("Export Category Buffers::")

@@ -5,6 +5,8 @@ from .m_ini_builder import *
 from .m_drawib_model import *
 from .m_ini_helper import M_IniHelper
 
+from ..config.properties_generate_mod import Properties_GenerateMod
+
 
 
 class M_HSRIniModel:
@@ -72,7 +74,7 @@ class M_HSRIniModel:
         Add texture resource.
         只有槽位风格贴图会用到，因为Hash风格贴图有专门的方法去声明这个。
         '''
-        if GenerateModConfig.forbid_auto_texture_ini():
+        if Properties_GenerateMod.forbid_auto_texture_ini():
             return 
         
         resource_texture_section = M_IniSection(M_SectionType.ResourceTexture)
@@ -207,7 +209,7 @@ class M_HSRIniModel:
             texture_override_ib_section.append(cls.vlr_filter_index_indent + "ib = " + ib_resource_name)
 
             # Add slot style texture slot replace.
-            if not GenerateModConfig.forbid_auto_texture_ini():
+            if not Properties_GenerateMod.forbid_auto_texture_ini():
                 slot_texturereplace_dict = draw_ib_model.PartName_SlotTextureReplaceDict_Dict.get(part_name,None)
                 # It may not have auto texture
                 if slot_texturereplace_dict is not None:
@@ -292,7 +294,7 @@ class M_HSRIniModel:
 
     @classmethod
     def add_texture_filter_index(cls,ini_builder:M_IniBuilder):
-        if not GenerateModConfig.slot_style_texture_add_filter_index():
+        if not Properties_GenerateMod.slot_style_texture_add_filter_index():
             return 
 
         filter_index_count = 0
@@ -353,7 +355,7 @@ class M_HSRIniModel:
         M_IniHelper.generate_hash_style_texture_ini(ini_builder=config_ini_builder,drawib_drawibmodel_dict=cls.drawib_drawibmodel_dict)
 
 
-        if GenerateModConfig.slot_style_texture_add_filter_index():
+        if Properties_GenerateMod.slot_style_texture_add_filter_index():
             cls.add_texture_filter_index(ini_builder= config_ini_builder)
 
         # 多个drawib目前测试共用一个就行了。
@@ -384,5 +386,5 @@ class M_HSRIniModel:
 
             cls.global_generate_mod_number = cls.global_generate_mod_number + 1
 
-        config_ini_builder.save_to_file(MainConfig.path_generate_mod_folder() + MainConfig.workspacename + ".ini")
+        config_ini_builder.save_to_file(GlobalConfig.path_generate_mod_folder() + GlobalConfig.workspacename + ".ini")
         

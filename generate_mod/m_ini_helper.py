@@ -3,8 +3,9 @@ import shutil
 
 from .m_ini_builder import *
 from ..utils.json_utils import JsonUtils
-from ..config.main_config import MainConfig, GenerateModConfig
+from ..config.main_config import GlobalConfig
 from .m_drawib_model import DrawIBModel,ModelCollection
+from ..config.properties_generate_mod import Properties_GenerateMod
 
 
 class M_IniHelper:
@@ -23,7 +24,7 @@ class M_IniHelper:
         
         # 尝试读取Setting.json里的设置，解析错误就还使用默认的
         try:
-            setting_json_dict = JsonUtils.LoadFromFile(MainConfig.path_setting_json())
+            setting_json_dict = JsonUtils.LoadFromFile(GlobalConfig.path_setting_json())
             print(setting_json_dict)
             mod_switch_key = str(setting_json_dict["ModSwitchKey"])
             mod_switch_key_list = mod_switch_key.split(",")
@@ -161,13 +162,13 @@ class M_IniHelper:
         Move all textures from extracted game type folder to generate mod Texture folder.
         Only works in default slot style texture.
         '''
-        if GenerateModConfig.forbid_auto_texture_ini():
+        if Properties_GenerateMod.forbid_auto_texture_ini():
             return
         
         for texture_filename in draw_ib_model.TextureResource_Name_FileName_Dict.values():
             # 只有槽位风格会移动到目标位置
             if "_Slot_" in texture_filename:
-                target_path = MainConfig.path_generatemod_texture_folder(draw_ib=draw_ib_model.draw_ib) + texture_filename
+                target_path = GlobalConfig.path_generatemod_texture_folder(draw_ib=draw_ib_model.draw_ib) + texture_filename
                 source_path = draw_ib_model.extract_gametype_folder_path + texture_filename
                 
                 # only overwrite when there is no texture file exists.
@@ -179,7 +180,7 @@ class M_IniHelper:
         '''
         Generate Hash style TextureReplace.ini
         '''
-        if GenerateModConfig.forbid_auto_texture_ini():
+        if Properties_GenerateMod.forbid_auto_texture_ini():
             return
         
 
@@ -194,7 +195,7 @@ class M_IniHelper:
         repeat_hash_list = []
         # 遍历当前drawib的Render文件夹
         for draw_ib,draw_ib_model in drawib_drawibmodel_dict.items():
-            render_texture_folder_path = MainConfig.path_workspace_folder() + draw_ib + "\\" + "RenderTextures\\"
+            render_texture_folder_path = GlobalConfig.path_workspace_folder() + draw_ib + "\\" + "RenderTextures\\"
 
             render_texture_files = os.listdir(render_texture_folder_path)
 
@@ -207,14 +208,14 @@ class M_IniHelper:
                         continue
                     repeat_hash_list.append(texture_hash)
 
-                    original_texture_file_path = MainConfig.path_extract_gametype_folder(draw_ib=draw_ib,gametype_name=draw_ib_model.d3d11GameType.GameTypeName) + texture_file_name
+                    original_texture_file_path = GlobalConfig.path_extract_gametype_folder(draw_ib=draw_ib,gametype_name=draw_ib_model.d3d11GameType.GameTypeName) + texture_file_name
 
                     # same hash usually won't exists in two folder.
                     if not os.path.exists(original_texture_file_path):
                         continue
 
                     
-                    target_texture_file_path = MainConfig.path_generatemod_texture_folder(draw_ib=draw_ib) + texture_file_name
+                    target_texture_file_path = GlobalConfig.path_generatemod_texture_folder(draw_ib=draw_ib) + texture_file_name
                     
                     resource_and_textureoverride_texture_section = M_IniSection(M_SectionType.ResourceAndTextureOverride_Texture)
                     resource_and_textureoverride_texture_section.append("[Resource_Texture_" + texture_hash + "]")
@@ -235,7 +236,7 @@ class M_IniHelper:
                         shutil.copy2(original_texture_file_path,target_texture_file_path)
 
             # 如果只使用标记过的贴图，则跳过RenderTextures的生成
-            if GenerateModConfig.only_use_marked_texture():
+            if Properties_GenerateMod.only_use_marked_texture():
                 continue
 
             # 添加RenderTextures里的的贴图
@@ -256,7 +257,7 @@ class M_IniHelper:
                     continue
 
                 
-                target_texture_file_path = MainConfig.path_generatemod_texture_folder(draw_ib=draw_ib) + render_texture_name
+                target_texture_file_path = GlobalConfig.path_generatemod_texture_folder(draw_ib=draw_ib) + render_texture_name
                 
                 resource_and_textureoverride_texture_section = M_IniSection(M_SectionType.ResourceAndTextureOverride_Texture)
                 resource_and_textureoverride_texture_section.append("[Resource_Texture_" + texture_hash + "]")

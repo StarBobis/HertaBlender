@@ -4,7 +4,8 @@ import os
 from ..utils.migoto_utils import *
 from ..config.main_config import * 
 from ..generate_mod.m_export_mod import *
-from ..config.main_config import ImportModelConfig
+
+from ..config.properties_dbmt_path import Properties_DBMT_Path
 
 
 # 用于选择DBMT所在文件夹，主要是这里能自定义逻辑从而实现保存DBMT路径，这样下次打开就还能读取到。
@@ -24,7 +25,7 @@ class OBJECT_OT_select_dbmt_folder(bpy.types.Operator):
             # print(f"Selected folder: {self.directory}")
             # 在这里放置你想要执行的逻辑
             # 比如验证路径是否有效、初始化某些资源等
-            MainConfig.save_dbmt_path()
+            GlobalConfig.save_dbmt_path()
             
             self.report({'INFO'}, f"Folder selected: {self.directory}")
         else:
@@ -87,12 +88,12 @@ class PanelModelImportConfig(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(context.scene.dbmt,"model_scale",text="模型导入大小比例")
-        layout.prop(context.scene.dbmt,"import_flip_scale_x",text="设置Scale的X分量为-1避免模型镜像")
-        layout.prop(context.scene.dbmt,"import_flip_scale_y",text="设置Scale的Y分量为-1来改变模型朝向")
+        layout.prop(context.scene.properties_import_model,"model_scale",text="模型导入大小比例")
+        layout.prop(context.scene.properties_import_model,"import_flip_scale_x",text="设置Scale的X分量为-1避免模型镜像")
+        layout.prop(context.scene.properties_import_model,"import_flip_scale_y",text="设置Scale的Y分量为-1来改变模型朝向")
 
-        if MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS:
-            layout.prop(context.scene.dbmt_import_config_unreal,"import_merged_vgmap",text="使用融合统一顶点组")
+        if GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS:
+            layout.prop(context.scene.properties_wwmi,"import_merged_vgmap",text="使用融合统一顶点组")
 
 
 class PanelGenerateModConfig(bpy.types.Panel):
@@ -107,23 +108,24 @@ class PanelGenerateModConfig(bpy.types.Panel):
         layout = self.layout
         # 根据当前游戏类型判断哪些应该显示哪些不显示。
         # 因为UnrealVS显然无法支持这里所有的特性，每个游戏只能支持一部分特性。
-        if MainConfig.get_game_category() == GameCategory.UnityVS or MainConfig.get_game_category() == GameCategory.UnityCS:
-            if MainConfig.gamename == "GF2":
-                layout.prop(context.scene.dbmt_generatemod, "export_same_number",text="使用共享TANGENT避免增加顶点数")
+        if GlobalConfig.get_game_category() == GameCategory.UnityVS or GlobalConfig.get_game_category() == GameCategory.UnityCS:
+            if GlobalConfig.gamename == "GF2":
+                layout.prop(context.scene.properties_generate_mod, "export_same_number",text="使用共享TANGENT避免增加顶点数")
 
-            layout.prop(context.scene.dbmt_generatemod, "only_use_marked_texture",text="只使用标记过的贴图")
-            layout.prop(context.scene.dbmt_generatemod, "forbid_auto_texture_ini",text="禁止自动贴图流程")
-            layout.prop(context.scene.dbmt_generatemod, "recalculate_tangent",text="向量归一化法线存入TANGENT(全局)")
+            layout.prop(context.scene.properties_generate_mod, "only_use_marked_texture",text="只使用标记过的贴图")
+            layout.prop(context.scene.properties_generate_mod, "forbid_auto_texture_ini",text="禁止自动贴图流程")
+            layout.prop(context.scene.properties_generate_mod, "recalculate_tangent",text="向量归一化法线存入TANGENT(全局)")
             
             # 只有崩坏三2.0可能会用到重计算COLOR值
-            if MainConfig.gamename == "HI3":
-                layout.prop(context.scene.dbmt_generatemod, "recalculate_color",text="算术平均归一化法线存入COLOR(全局)")
-            layout.prop(context.scene.dbmt_generatemod, "position_override_filter_draw_type",text="Position替换添加DRAW_TYPE=1判断")
-            layout.prop(context.scene.dbmt_generatemod, "vertex_limit_raise_add_filter_index",text="VertexLimitRaise添加filter_index过滤器")
-            layout.prop(context.scene.dbmt_generatemod, "slot_style_texture_add_filter_index",text="槽位风格贴图添加filter_index过滤器")
-        elif MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS:
-            layout.prop(context.scene.dbmt_generatemod, "only_use_marked_texture",text="只使用标记过的贴图")
-            layout.prop(context.scene.dbmt_generatemod, "forbid_auto_texture_ini",text="禁止自动贴图流程")
+            if GlobalConfig.gamename == "HI3":
+                layout.prop(context.scene.properties_generate_mod, "recalculate_color",text="算术平均归一化法线存入COLOR(全局)")
+            layout.prop(context.scene.properties_generate_mod, "position_override_filter_draw_type",text="Position替换添加DRAW_TYPE=1判断")
+            layout.prop(context.scene.properties_generate_mod, "vertex_limit_raise_add_filter_index",text="VertexLimitRaise添加filter_index过滤器")
+            layout.prop(context.scene.properties_generate_mod, "slot_style_texture_add_filter_index",text="槽位风格贴图添加filter_index过滤器")
+        elif GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS:
+            layout.prop(context.scene.properties_generate_mod, "only_use_marked_texture",text="只使用标记过的贴图")
+            layout.prop(context.scene.properties_generate_mod, "forbid_auto_texture_ini",text="禁止自动贴图流程")
+            layout.prop(context.scene.properties_generate_mod, "ignore_muted_shape_keys")
             
 
 class PanelButtons(bpy.types.Panel):
@@ -138,48 +140,45 @@ class PanelButtons(bpy.types.Panel):
         layout = self.layout
 
         # use_sepecified_dbmt
-        layout.prop(context.scene.dbmt, "use_specified_dbmt",text="使用指定的DBMT路径")
+        layout.prop(context.scene.dbmt_path, "use_specified_dbmt",text="使用指定的DBMT路径")
 
-        if ImportModelConfig.use_specified_dbmt():
-
+        if Properties_DBMT_Path.use_specified_dbmt():
             # Path button to choose DBMT-GUI.exe location folder.
             row = layout.row()
             row.operator("object.select_dbmt_folder")
 
             # 获取DBMT.exe的路径
-            dbmt_gui_exe_path = os.path.join(context.scene.dbmt.path, "DBMT.exe")
+            dbmt_gui_exe_path = os.path.join(Properties_DBMT_Path.path(), "DBMT.exe")
             if not os.path.exists(dbmt_gui_exe_path):
                 layout.label(text="Error:Please select DBMT.exe location ", icon='ERROR')
         
-        MainConfig.read_from_main_json()
+        GlobalConfig.read_from_main_json()
 
-        layout.label(text="DBMT路径: " + MainConfig.dbmtlocation)
+        layout.label(text="DBMT路径: " + GlobalConfig.dbmtlocation)
         # print(MainConfig.dbmtlocation)
 
-        layout.label(text="当前游戏: " + MainConfig.gamename)
-        layout.label(text="当前工作空间: " + MainConfig.workspacename)
+        layout.label(text="当前游戏: " + GlobalConfig.gamename)
+        layout.label(text="当前工作空间: " + GlobalConfig.workspacename)
 
         operator_import_ib_vb = layout.operator("import_mesh.migoto_raw_buffers_mmt",icon='IMPORT')
-        operator_import_ib_vb.filepath = MainConfig.path_workspace_folder()
+        operator_import_ib_vb.filepath = GlobalConfig.path_workspace_folder()
 
         layout.operator("dbmt.import_all_from_workspace",icon='IMPORT')
 
-        if MainConfig.gamename == "HSR" or MainConfig.gamename == "AILIMIT":
+        if GlobalConfig.gamename == "HSR" or GlobalConfig.gamename == "AILIMIT":
             layout.operator("dbmt.export_mod_hsr_32",text="生成XXMI格式Mod",icon='EXPORT')
-        elif MainConfig.gamename == "WWMI":
+        elif GlobalConfig.gamename == "WWMI":
             layout.operator("dbmt.export_unreal_vs_mod_to_workspace")
             layout.operator("herta.export_mod_wwmi",text="生成WWMI格式Mod(仅开发测试使用)",icon='EXPORT')
         else:
-            if MainConfig.get_game_category() == GameCategory.UnityVS:
+            if GlobalConfig.get_game_category() == GameCategory.UnityVS:
                 layout.operator("dbmt.export_unity_vs_mod_to_workspace_seperated")
-            elif MainConfig.get_game_category() == GameCategory.UnityCS:
+            elif GlobalConfig.get_game_category() == GameCategory.UnityCS:
                 layout.operator("dbmt.export_unity_cs_mod_to_workspace_seperated")
-            elif MainConfig.get_game_category() == GameCategory.UnrealVS:
+            elif GlobalConfig.get_game_category() == GameCategory.UnrealVS:
                 layout.operator("dbmt.export_unreal_vs_mod_to_workspace")
-            elif MainConfig.get_game_category() == GameCategory.UnrealCS:
+            elif GlobalConfig.get_game_category() == GameCategory.UnrealCS:
                 layout.operator("dbmt.export_unreal_cs_mod_to_workspace")
             else:
-                layout.label(text= "Generate Mod for " + MainConfig.gamename + " Not Supported Yet.")
-
-
+                layout.label(text= "Generate Mod for " + GlobalConfig.gamename + " Not Supported Yet.")
 

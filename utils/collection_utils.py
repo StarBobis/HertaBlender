@@ -1,6 +1,6 @@
 import bpy
 
-from ..config.main_config import MainConfig
+from ..config.main_config import GlobalConfig
 
 class CollectionUtils:
 
@@ -130,7 +130,7 @@ class CollectionUtils:
         '''
         创建一个WorkSpace名称为名称的集合并返回此集合，WorkSpace集合的颜色是COLOR_01        
         '''
-        workspace_collection = bpy.data.collections.new(MainConfig.workspacename)
+        workspace_collection = bpy.data.collections.new(GlobalConfig.workspacename)
         workspace_collection.color_tag = "COLOR_01"
         return workspace_collection
     

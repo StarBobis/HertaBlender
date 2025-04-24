@@ -18,7 +18,7 @@ class ImportUtils:
     # Get drawib list from Config.json in current workspace.
     @classmethod
     def get_extract_drawib_list_from_workspace_config_json(cls) -> list[DrawIBPair]:
-        workspace_path = MainConfig.path_workspace_folder()
+        workspace_path = GlobalConfig.path_workspace_folder()
 
         game_config_path = os.path.join(workspace_path,"Config.json")
         game_config_json = JsonUtils.LoadFromFile(game_config_path)
@@ -37,7 +37,7 @@ class ImportUtils:
 
     @classmethod
     def get_import_drawib_aliasname_folder_path_dict_with_first_match_type(cls)->list:
-        output_folder_path = MainConfig.path_workspace_folder()
+        output_folder_path = GlobalConfig.path_workspace_folder()
         
         draw_ib_list= ImportUtils.get_extract_drawib_list_from_workspace_config_json()
         

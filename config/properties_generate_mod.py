@@ -1,51 +1,9 @@
 import bpy
 from bpy.props import FloatProperty, IntProperty
-from .main_config import MainConfig
+from .main_config import GlobalConfig
 
 
-class CatterProperties_ImportModel_General(bpy.types.PropertyGroup):
-    # ------------------------------------------------------------------------------------------------------------
-    path: bpy.props.StringProperty(
-        name="DBMT.exe Location",
-        description="插件需要先选择DBMT-GUI.exe的所在路径才能正常工作",
-        default=MainConfig.load_dbmt_path(),
-        subtype='DIR_PATH'
-    ) # type: ignore
-
-    use_specified_dbmt :bpy.props.BoolProperty(
-        name="使用指定的DBMT路径",
-        description="Use specified DBMT path to work for specified DBMT instead of current opening DBMT",
-        default=False
-    ) # type: ignore
-
-    model_scale: FloatProperty(
-        name="模型导入大小比例",
-        description="默认为1.0",
-        default=1.0,
-    ) # type: ignore
-
-    import_flip_scale_x :bpy.props.BoolProperty(
-        name="设置Scale的X分量为-1避免模型镜像",
-        description="勾选后在导入模型时把缩放的X分量乘以-1，实现镜像效果，还原游戏中原本的样子，解决导入后镜像对调的问题",
-        default=False
-    ) # type: ignore
-
-    import_flip_scale_y :bpy.props.BoolProperty(
-        name="设置Scale的Y分量为-1来改变模型朝向",
-        description="勾选后在导入模型时把缩放的Y分量乘以-1，实现改变朝向效果，主要用于方便后续绑MMD骨",
-        default=False
-    ) # type: ignore
-
-
-class CatterProperties_ImportModel_Unreal(bpy.types.PropertyGroup):
-    import_merged_vgmap:bpy.props.BoolProperty(
-        name="使用融合统一顶点组",
-        description="导入时是否导入融合后的顶点组 (Unreal的合并顶点组技术会用到)，一般鸣潮Mod需要勾选来降低制作Mod的复杂度",
-        default=False
-    ) # type: ignore
-
-
-class CatterProperties_GenerateMod_General(bpy.types.PropertyGroup):
+class Properties_GenerateMod(bpy.types.PropertyGroup):
     export_same_number: bpy.props.BoolProperty(
         name="使用共享TANGENT避免增加顶点数",
         description="使用共享的TANGENT值从而避免hashable计算导致的顶点数增加 (在Unity-CPU-PreSkinning技术中常用，GF2常用，避免顶点数变多导致无法和原本模型顶点数对应)",
@@ -92,11 +50,86 @@ class CatterProperties_GenerateMod_General(bpy.types.PropertyGroup):
         default=False
     ) # type: ignore
 
-
-
     only_use_marked_texture:bpy.props.BoolProperty(
         name="只使用标记过的贴图",
         description="勾选后不会再生成Hash风格的RenderTextures里的自动贴图，而是完全使用用户标记过的贴图，如果用户遗漏了标记，则不会生成对应没标记过的贴图的ini内容",
         default=False
     ) # type: ignore
+
+    
+
+    @classmethod
+    def forbid_auto_texture_ini(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.forbid_auto_texture_ini
+        '''
+        return bpy.context.scene.properties_generate_mod.forbid_auto_texture_ini
+
+    
+    @classmethod
+    def author_name(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.credit_info_author_name
+        '''
+        return bpy.context.scene.properties_generate_mod.credit_info_author_name
+    
+    @classmethod
+    def author_link(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.credit_info_author_social_link
+        '''
+        return bpy.context.scene.properties_generate_mod.credit_info_author_social_link
+    
+    @classmethod
+    def export_same_number(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.export_same_number
+        '''
+        return bpy.context.scene.properties_generate_mod.export_same_number
+    
+    @classmethod
+    def recalculate_tangent(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.recalculate_tangent
+        '''
+        return bpy.context.scene.properties_generate_mod.recalculate_tangent
+    
+    @classmethod
+    def recalculate_color(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.recalculate_color
+        '''
+        return bpy.context.scene.properties_generate_mod.recalculate_color
+    
+
+    @classmethod
+    def position_override_filter_draw_type(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.position_override_filter_draw_type
+        '''
+        return bpy.context.scene.properties_generate_mod.position_override_filter_draw_type
+    
+    @classmethod
+    def vertex_limit_raise_add_filter_index(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.vertex_limit_raise_add_filter_index
+        '''
+        return bpy.context.scene.properties_generate_mod.vertex_limit_raise_add_filter_index
+
+    @classmethod
+    def slot_style_texture_add_filter_index(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.slot_style_texture_add_filter_index
+        '''
+        return bpy.context.scene.properties_generate_mod.slot_style_texture_add_filter_index
+    
+    # only_use_marked_texture
+    @classmethod
+    def only_use_marked_texture(cls):
+        '''
+        bpy.context.scene.properties_generate_mod.only_use_marked_texture
+        '''
+        return bpy.context.scene.properties_generate_mod.only_use_marked_texture
+    
+    
     

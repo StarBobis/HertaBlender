@@ -1,11 +1,19 @@
 
+# 自动更新功能
+from . import addon_updater_ops
+
+# UI界面
 from .ui.panel_ui import * 
 from .ui.collection_rightclick_ui import *
 from .ui.obj_rightclick_ui import *
 
-from .config.props import *
+# 全局配置
+from .config.properties_dbmt_path import Properties_DBMT_Path
+from .config.properties_import_model import Properties_ImportModel
+from .config.properties_generate_mod import Properties_GenerateMod
+from .config.properties_wwmi import Properties_WWMI
+
 from .import_model.migoto_import import *
-from . import addon_updater_ops
 
 
 '''
@@ -69,9 +77,10 @@ class UpdaterPanel(bpy.types.Panel):
 
 register_classes = (
     # 全局配置
-    CatterProperties_ImportModel_General,
-    CatterProperties_ImportModel_Unreal,
-    CatterProperties_GenerateMod_General,
+    Properties_ImportModel,
+    Properties_WWMI,
+    Properties_DBMT_Path,
+    Properties_GenerateMod,
 
     # DBMT所在位置
     OBJECT_OT_select_dbmt_folder,
@@ -132,32 +141,32 @@ class HertaUpdatePreference(bpy.types.AddonPreferences):
     bl_idname = __package__
 
 
-    auto_check_update: BoolProperty(
+    auto_check_update: bpy.props.BoolProperty(
         name="Auto-check for Update",
         description="If enabled, auto-check for updates using an interval",
         default=True) # type: ignore
 
-    updater_interval_months: IntProperty(
+    updater_interval_months: bpy.props.IntProperty(
         name='Months',
         description="Number of months between checking for updates",
         default=0,
         min=0) # type: ignore
 
-    updater_interval_days: IntProperty(
+    updater_interval_days: bpy.props.IntProperty(
         name='Days',
         description="Number of days between checking for updates",
         default=1,
         min=0,
         max=31) # type: ignore
 
-    updater_interval_hours: IntProperty(
+    updater_interval_hours: bpy.props.IntProperty(
         name='Hours',
         description="Number of hours between checking for updates",
         default=0,
         min=0,
         max=23) # type: ignore
 
-    updater_interval_minutes: IntProperty(
+    updater_interval_minutes: bpy.props.IntProperty(
         name='Minutes',
         description="Number of minutes between checking for updates",
         default=0,
@@ -169,15 +178,14 @@ class HertaUpdatePreference(bpy.types.AddonPreferences):
         addon_updater_ops.update_settings_ui(self, context)
 
 
-
-
 def register():
     for cls in register_classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Scene.dbmt = bpy.props.PointerProperty(type=CatterProperties_ImportModel_General)
-    bpy.types.Scene.dbmt_import_config_unreal = bpy.props.PointerProperty(type=CatterProperties_ImportModel_Unreal)
-    bpy.types.Scene.dbmt_generatemod = bpy.props.PointerProperty(type=CatterProperties_GenerateMod_General)
+    bpy.types.Scene.dbmt_path = bpy.props.PointerProperty(type=Properties_DBMT_Path)
+    bpy.types.Scene.properties_wwmi = bpy.props.PointerProperty(type=Properties_WWMI)
+    bpy.types.Scene.properties_import_model = bpy.props.PointerProperty(type=Properties_ImportModel)
+    bpy.types.Scene.properties_generate_mod = bpy.props.PointerProperty(type=Properties_GenerateMod)
 
     bpy.types.VIEW3D_MT_object_context_menu.append(menu_func_migoto_right_click)
     bpy.types.OUTLINER_MT_collection.append(menu_dbmt_mark_collection_switch)
@@ -192,9 +200,11 @@ def unregister():
     for cls in reversed(register_classes):
         bpy.utils.unregister_class(cls)
 
+    # 卸载右键菜单
     bpy.types.VIEW3D_MT_object_context_menu.remove(menu_func_migoto_right_click)
     bpy.types.OUTLINER_MT_collection.remove(menu_dbmt_mark_collection_switch)
 
+    # 卸载插件面板中的更新面板
     bpy.utils.unregister_class(HertaUpdatePreference)
 
 if __name__ == "__main__":

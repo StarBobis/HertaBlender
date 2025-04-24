@@ -2,6 +2,8 @@ from .import_utils import *
 from ..migoto.migoto_format import *
 from ..utils.collection_utils import *
 from ..config.main_config import *
+from ..config.properties_wwmi import Properties_WWMI
+from ..config.properties_import_model import Properties_ImportModel
 
 from ..utils.obj_utils import ObjUtils
 from ..utils.json_utils import JsonUtils
@@ -311,7 +313,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
 
     #  metadata.json, if contains then we can import merged vgmap.
     component = None
-    if ImportModelConfigUnreal.import_merged_vgmap():
+    if Properties_WWMI.import_merged_vgmap() and GlobalConfig.gamename == "WWMI":
         # print("尝试读取Metadata.json")
         metadatajsonpath = os.path.join(os.path.dirname(fmt_path),'Metadata.json')
         if os.path.exists(metadatajsonpath):
@@ -339,19 +341,19 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     create_material_with_texture(obj, mesh_name=mesh_name,directory= os.path.dirname(fmt_path))
 
     # ZZZ need reset rotation.
-    if MainConfig.gamename not in ["GI","HI3","HSR","Game001"]:
+    if GlobalConfig.gamename not in ["GI","HI3","HSR","Game001"]:
         obj.rotation_euler[0] = 0.0  # X轴
         obj.rotation_euler[1] = 0.0  # Y轴
         obj.rotation_euler[2] = 0.0  # Z轴
 
     # 设置导入时模型大小比例，Unreal模型常用
-    scalefactor = bpy.context.scene.dbmt.model_scale
+    scalefactor = Properties_ImportModel.model_scale()
     obj.scale = scalefactor,scalefactor,scalefactor
 
     # 导入时翻转模型
-    if ImportModelConfig.import_flip_scale_x():
+    if Properties_ImportModel.import_flip_scale_x():
         obj.scale.x = obj.scale.x * -1
-    if ImportModelConfig.import_flip_scale_y():
+    if Properties_ImportModel.import_flip_scale_y():
         obj.scale.y = obj.scale.y * -1
 
     return obj
@@ -468,7 +470,7 @@ def ImprotFromWorkSpace(self, context):
         draw_ib = draw_ib_aliasname.split("_")[0]
         draw_ib_gametypename_dict[draw_ib] = work_game_type
 
-    save_import_json_path = os.path.join(MainConfig.path_workspace_folder(),"Import.json")
+    save_import_json_path = os.path.join(GlobalConfig.path_workspace_folder(),"Import.json")
 
     JsonUtils.SaveToFile(json_dict=draw_ib_gametypename_dict,filepath=save_import_json_path)
     
@@ -534,10 +536,10 @@ class DBMTImportAllFromCurrentWorkSpace(bpy.types.Operator):
     bl_description = "一键导入当前工作空间文件夹下所有的DrawIB对应的模型为分支集合架构"
 
     def execute(self, context):
-        if MainConfig.workspacename == "":
+        if GlobalConfig.workspacename == "":
             self.report({"ERROR"},"Please select your WorkSpace in DBMT before import.")
-        elif not os.path.exists(MainConfig.path_workspace_folder()):
-            self.report({"ERROR"},"Please select a correct WorkSpace in DBMT before import " + MainConfig.path_workspace_folder())
+        elif not os.path.exists(GlobalConfig.path_workspace_folder()):
+            self.report({"ERROR"},"Please select a correct WorkSpace in DBMT before import " + GlobalConfig.path_workspace_folder())
         else:
             TimerUtils.Start("ImportFromWorkSpace")
             # TODO 导入实在是太慢了，WWMI的模型导入要13秒，还好导入模型这个操作并不是很频繁，有空再来优化吧。

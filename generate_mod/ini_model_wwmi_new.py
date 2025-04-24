@@ -3,7 +3,7 @@ import shutil
 from .m_ini_builder import *
 from .m_drawib_model import *
 from .m_ini_helper import M_IniHelper
-from ..config.main_config import ImportModelConfigUnreal
+from ..config.properties_wwmi import Properties_WWMI
 
 
 class M_WWMIIniModel:
@@ -56,7 +56,7 @@ class M_WWMIIniModel:
         constants_section.append("global $mod_id = -1000")
 
         # 只有Merged顶点组才需要用到$state_id
-        if ImportModelConfigUnreal.import_merged_vgmap():
+        if Properties_WWMI.import_merged_vgmap():
             constants_section.append("global $state_id = 0")
 
         constants_section.append("global $mod_enabled = 0")
@@ -77,7 +77,7 @@ class M_WWMIIniModel:
         present_section.append("    post $object_detected = 0")
 
         # 只有Merged顶点组需要运行UpdateMergedSkeleton
-        if ImportModelConfigUnreal.import_merged_vgmap():
+        if Properties_WWMI.import_merged_vgmap():
             present_section.append("    run = CommandListUpdateMergedSkeleton")
 
         present_section.append("  else")
@@ -110,7 +110,7 @@ class M_WWMIIniModel:
         commandlist_section.append("endif")
         commandlist_section.new_line()
 
-        if ImportModelConfigUnreal.import_merged_vgmap():
+        if Properties_WWMI.import_merged_vgmap():
         # CommandListUpdateMergedSkeleton
             commandlist_section.append("[CommandListUpdateMergedSkeleton]")
             commandlist_section.append("if $state_id")
@@ -145,7 +145,7 @@ class M_WWMIIniModel:
         commandlist_section.append("CheckTextureOverride = ps-t7")
 
         # 只有Merged顶点组需要check vs-cb3和vs-cb4
-        if ImportModelConfigUnreal.import_merged_vgmap():
+        if Properties_WWMI.import_merged_vgmap():
             commandlist_section.append("CheckTextureOverride = vs-cb3")
             commandlist_section.append("CheckTextureOverride = vs-cb4")
 
@@ -166,7 +166,7 @@ class M_WWMIIniModel:
         commandlist_section.append("vb3 = ResourceColorBuffer")
         commandlist_section.append("vb4 = ResourceBlendBuffer")
 
-        if ImportModelConfigUnreal.import_merged_vgmap():
+        if Properties_WWMI.import_merged_vgmap():
             commandlist_section.append("if vs-cb3 == 3381.7777")
             commandlist_section.append("  vs-cb3 = ResourceExtraMergedSkeleton")
             commandlist_section.append("endif")
@@ -282,7 +282,7 @@ class M_WWMIIniModel:
             texture_override_component.append("$object_detected = 1")
             texture_override_component.append("if $mod_enabled")
 
-            if ImportModelConfigUnreal.import_merged_vgmap():
+            if Properties_WWMI.import_merged_vgmap():
                 state_id_var_str = "$state_id_" + component_count_str
                 texture_override_component.append("  " + "local " + state_id_var_str)
                 texture_override_component.append("  " + "if " + state_id_var_str + " != $state_id")
@@ -360,7 +360,7 @@ class M_WWMIIniModel:
             texture_override_shapekeys_section.append("match_priority = 0")
             texture_override_shapekeys_section.append("if $mod_enabled")
 
-            if ImportModelConfigUnreal.import_merged_vgmap():
+            if Properties_WWMI.import_merged_vgmap():
                 texture_override_shapekeys_section.append("  " + "if cs == 3381.3333 && ResourceMergedSkeleton !== null")
             else:
                 texture_override_shapekeys_section.append("  " + "if cs == 3381.3333")
@@ -379,7 +379,7 @@ class M_WWMIIniModel:
             texture_override_shapekeys_section.append("match_priority = 0")
             texture_override_shapekeys_section.append("if $mod_enabled")
 
-            if ImportModelConfigUnreal.import_merged_vgmap():
+            if Properties_WWMI.import_merged_vgmap():
                 texture_override_shapekeys_section.append("  " + "if cs == 3381.4444 && ResourceMergedSkeleton !== null")
             else:
                 texture_override_shapekeys_section.append("  " + "if cs == 3381.4444")
@@ -518,7 +518,7 @@ class M_WWMIIniModel:
             cls.add_resource_mod_info_section_default(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_resource_shapekeys(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
 
-            if ImportModelConfigUnreal.import_merged_vgmap():
+            if Properties_WWMI.import_merged_vgmap():
                 cls.add_resource_merged_skeleton(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
 
             cls.add_resource_buffer(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
@@ -528,7 +528,7 @@ class M_WWMIIniModel:
 
             cls.global_generate_mod_number = cls.global_generate_mod_number + 1
 
-            config_ini_builder.save_to_file(MainConfig.path_generate_mod_folder() + MainConfig.workspacename + "_" + draw_ib + ".ini")
+            config_ini_builder.save_to_file(GlobalConfig.path_generate_mod_folder() + GlobalConfig.workspacename + "_" + draw_ib + ".ini")
             config_ini_builder.clear()
 
         

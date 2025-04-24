@@ -9,7 +9,9 @@ from ..utils.migoto_utils import Fatal, MigotoUtils
 
 from ..migoto.migoto_format import D3D11GameType
 
-from ..config.main_config import MainConfig,GameCategory,GenerateModConfig
+from ..config.main_config import GlobalConfig,GameCategory
+
+from ..config.properties_generate_mod import Properties_GenerateMod
 
 class BufferDataConverter:
     '''
@@ -156,7 +158,7 @@ class BufferDataConverter:
         if "TANGENT" not in d3d11GameType.OrderedFullElementList:
             return indexed_vertices
         allow_calc = False
-        if GenerateModConfig.recalculate_tangent():
+        if Properties_GenerateMod.recalculate_tangent():
             allow_calc = True
         elif obj.get("3DMigoto:RecalculateTANGENT",False): 
             allow_calc = True
@@ -222,7 +224,7 @@ class BufferDataConverter:
         if "COLOR" not in d3d11GameType.OrderedFullElementList:
             return indexed_vertices
         allow_calc = False
-        if GenerateModConfig.recalculate_color():
+        if Properties_GenerateMod.recalculate_color():
             allow_calc = True
         elif obj.get("3DMigoto:RecalculateCOLOR",False): 
             allow_calc = True
@@ -438,7 +440,7 @@ class BufferModel:
                     result[2::4] = normals[2::3]
                     
 
-                    if MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS:
+                    if GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS:
                         bitangent_signs = numpy.empty(mesh_loops_length, dtype=numpy.float32)
                         mesh_loops.foreach_get("bitangent_sign", bitangent_signs)
                         result[3::4] = bitangent_signs
@@ -485,14 +487,14 @@ class BufferModel:
                 result[1::4] = tangents[1::3]  # y 分量
                 result[2::4] = tangents[2::3]  # z 分量
 
-                if MainConfig.get_game_category() == GameCategory.UnityCS or MainConfig.get_game_category() == GameCategory.UnityVS:
+                if GlobalConfig.get_game_category() == GameCategory.UnityCS or GlobalConfig.get_game_category() == GameCategory.UnityVS:
                     bitangent_signs = numpy.empty(mesh_loops_length, dtype=numpy.float32)
                     mesh_loops.foreach_get("bitangent_sign", bitangent_signs)
                     # XXX 将副切线符号乘以 -1
                     # 这里翻转（翻转指的就是 *= -1）是因为如果要确保Unity游戏中渲染正确，必须翻转TANGENT的W分量
                     bitangent_signs *= -1
                     result[3::4] = bitangent_signs  # w 分量 (副切线符号)
-                elif MainConfig.get_game_category() == GameCategory.UnrealVS or MainConfig.get_game_category() == GameCategory.UnrealCS:
+                elif GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS:
                     # Unreal引擎中这里要填写固定的1
                     tangent_w = numpy.ones(mesh_loops_length, dtype=numpy.float32)
                     result[3::4] = tangent_w
@@ -585,7 +587,7 @@ class BufferModel:
         '''
         # TimerUtils.Start("Calc IB VB")
         # (1) 统计模型的索引和唯一顶点
-        if GenerateModConfig.export_same_number() and "TANGENT" in self.d3d11GameType.OrderedFullElementList:
+        if Properties_GenerateMod.export_same_number() and "TANGENT" in self.d3d11GameType.OrderedFullElementList:
             '''
             保持相同顶点数时，让相同顶点使用相同的TANGENT值来避免增加索引数和顶点数。
             这里我们使用每个顶点第一次出现的TANGENT值。
@@ -630,14 +632,14 @@ class BufferModel:
             index_vertex_id_dict = {}
             indexed_vertices = collections.OrderedDict()
             # 最快的方法，但是由于要兼容鸣潮架构，所以只有在Unity游戏中能用
-            if MainConfig.get_game_category() == GameCategory.UnityCS or MainConfig.get_game_category() == GameCategory.UnityVS:
+            if GlobalConfig.get_game_category() == GameCategory.UnityCS or GlobalConfig.get_game_category() == GameCategory.UnityVS:
                 
                 ib = [[indexed_vertices.setdefault(self.element_vertex_ndarray[blender_lvertex.index].tobytes(), len(indexed_vertices))
                         for blender_lvertex in mesh.loops[poly.loop_start:poly.loop_start + poly.loop_total]
                             ]for poly in mesh.polygons] 
             
             # 很显然上面注释掉的才是最快的，但是没办法在WWMI中，我们必须得获取每个draw的索引对应的顶点索引，以保证形态键数据能够正确获取
-            elif MainConfig.get_game_category() == GameCategory.UnrealCS or MainConfig.get_game_category() == GameCategory.UnrealVS:
+            elif GlobalConfig.get_game_category() == GameCategory.UnrealCS or GlobalConfig.get_game_category() == GameCategory.UnrealVS:
                 ib = []
                 for poly in mesh.polygons:
                     loop_indices = []

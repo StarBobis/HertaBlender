@@ -2,6 +2,7 @@ import bpy
 import os
 import json
 
+from .properties_dbmt_path import Properties_DBMT_Path
 
 class GameCategory:
     UnityVS = "UnityVS"
@@ -12,7 +13,7 @@ class GameCategory:
 
 # 全局配置类，使用字段默认为全局可访问的唯一静态变量的特性，来实现全局变量
 # 可减少从Main.json中读取的IO消耗
-class MainConfig:
+class GlobalConfig:
     # 全局静态变量,任何地方访问到的值都是唯一的
     gamename = ""
     workspacename = ""
@@ -56,30 +57,11 @@ class MainConfig:
         with open(config_path, 'w') as file:
             file.write(json_data)
 
-    @classmethod
-    def load_dbmt_path(cls):
-        # 获取当前脚本文件的路径
-        script_path = os.path.abspath(__file__)
 
-        # 获取当前插件的工作目录
-        plugin_directory = os.path.dirname(script_path)
-
-        # 构建配置文件的路径
-        config_path = os.path.join(plugin_directory, 'Config.json')
-
-        # 读取文件
-        with open(config_path, 'r') as file:
-            json_data = file.read()
-
-        # 将 JSON 格式的字符串解析为字典对象
-        config = json.loads(json_data)
-
-        # 读取保存的路径
-        return config['dbmt_path']
 
     @classmethod
     def read_from_main_json(cls) :
-        main_json_path = MainConfig.path_main_json()
+        main_json_path = GlobalConfig.path_main_json()
         if os.path.exists(main_json_path):
             main_setting_file = open(main_json_path)
             main_setting_json = json.load(main_setting_file)
@@ -97,7 +79,7 @@ class MainConfig:
     
     @classmethod
     def path_configs_folder(cls):
-        return os.path.join(MainConfig.base_path(),"Configs\\")
+        return os.path.join(GlobalConfig.base_path(),"Configs\\")
     
     @classmethod
     def path_3Dmigoto_folder(cls):
@@ -105,36 +87,36 @@ class MainConfig:
     
     @classmethod
     def path_mods_folder(cls):
-        return os.path.join(MainConfig.path_3Dmigoto_folder(),"Mods\\") 
+        return os.path.join(GlobalConfig.path_3Dmigoto_folder(),"Mods\\") 
 
     @classmethod
     def path_total_workspace_folder(cls):
-        return os.path.join(MainConfig.base_path(),"WorkSpace\\") 
+        return os.path.join(GlobalConfig.base_path(),"WorkSpace\\") 
     
     @classmethod
     def path_current_game_total_workspace_folder(cls):
-        return os.path.join(MainConfig.path_total_workspace_folder(),MainConfig.gamename + "\\") 
+        return os.path.join(GlobalConfig.path_total_workspace_folder(),GlobalConfig.gamename + "\\") 
     
     @classmethod
     def path_workspace_folder(cls):
-        return os.path.join(MainConfig.path_current_game_total_workspace_folder(), MainConfig.workspacename + "\\")
+        return os.path.join(GlobalConfig.path_current_game_total_workspace_folder(), GlobalConfig.workspacename + "\\")
     
     @classmethod
     def path_generate_mod_folder(cls):
         # 确保用的时候直接拿到的就是已经存在的目录
-        generate_mod_folder_path = os.path.join(MainConfig.path_mods_folder(),"Mod_"+MainConfig.workspacename + "\\")
+        generate_mod_folder_path = os.path.join(GlobalConfig.path_mods_folder(),"Mod_"+GlobalConfig.workspacename + "\\")
         if not os.path.exists(generate_mod_folder_path):
             os.makedirs(generate_mod_folder_path)
         return generate_mod_folder_path
     
     @classmethod
     def path_extract_gametype_folder(cls,draw_ib:str,gametype_name:str):
-        return os.path.join(MainConfig.path_workspace_folder(), draw_ib + "\\TYPE_" + gametype_name + "\\")
+        return os.path.join(GlobalConfig.path_workspace_folder(), draw_ib + "\\TYPE_" + gametype_name + "\\")
     
     @classmethod
     def path_generatemod_buffer_folder(cls,draw_ib:str):
        
-        buffer_path = os.path.join(MainConfig.path_generate_mod_folder(),"Buffer\\")
+        buffer_path = os.path.join(GlobalConfig.path_generate_mod_folder(),"Buffer\\")
         if not os.path.exists(buffer_path):
             os.makedirs(buffer_path)
         return buffer_path
@@ -142,7 +124,7 @@ class MainConfig:
     @classmethod
     def path_generatemod_texture_folder(cls,draw_ib:str):
 
-        texture_path = os.path.join(MainConfig.path_generate_mod_folder(),"Texture\\")
+        texture_path = os.path.join(GlobalConfig.path_generate_mod_folder(),"Texture\\")
         if not os.path.exists(texture_path):
             os.makedirs(texture_path)
         return texture_path
@@ -154,133 +136,15 @@ class MainConfig:
     # 定义基础的Json文件路径---------------------------------------------------------------------------------
     @classmethod
     def path_main_json(cls):
-        if ImportModelConfig.use_specified_dbmt():
-            return os.path.join(ImportModelConfig.path(),"Configs\\Main.json")
+        if Properties_DBMT_Path.use_specified_dbmt():
+            return os.path.join(Properties_DBMT_Path.path(),"Configs\\Main.json")
         else:
-            return os.path.join(MainConfig.path_appdata_local(), "DBMT-Main.json")
+            return os.path.join(GlobalConfig.path_appdata_local(), "DBMT-Main.json")
     
     @classmethod
     def path_setting_json(cls):
-        if ImportModelConfig.use_specified_dbmt():
-            return os.path.join(ImportModelConfig.path(),"Configs\\Setting.json")
+        if Properties_DBMT_Path.use_specified_dbmt():
+            return os.path.join(Properties_DBMT_Path.path(),"Configs\\Setting.json")
         else:
-            return os.path.join(MainConfig.path_appdata_local(), "DBMT-Setting.json")
-    
-
-class ImportModelConfig:
-
-    @classmethod
-    def import_flip_scale_x(cls):
-        '''
-        bpy.context.scene.dbmt.import_flip_scale_x
-        '''
-        return bpy.context.scene.dbmt.import_flip_scale_x
-
-    @classmethod
-    def import_flip_scale_y(cls):
-        '''
-        bpy.context.scene.dbmt.import_flip_scale_y
-        '''
-        return bpy.context.scene.dbmt.import_flip_scale_y
-    
-    @classmethod
-    def path(cls):
-        '''
-        bpy.context.scene.dbmt.path
-        '''
-        return bpy.context.scene.dbmt.path
-
-    @classmethod
-    def use_specified_dbmt(cls):
-        '''
-        bpy.context.scene.dbmt.use_specified_dbmt
-        '''
-        return bpy.context.scene.dbmt.use_specified_dbmt
-
-
-class ImportModelConfigUnreal:
-    # import_merged_vgmap
-    @classmethod
-    def import_merged_vgmap(cls):
-        '''
-        bpy.context.scene.dbmt_import_config_unreal.import_merged_vgmap
-        '''
-        return bpy.context.scene.dbmt_import_config_unreal.import_merged_vgmap
-    
-
-class GenerateModConfig:
-    
-    @classmethod
-    def forbid_auto_texture_ini(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.forbid_auto_texture_ini
-        '''
-        return bpy.context.scene.dbmt_generatemod.forbid_auto_texture_ini
-
-    
-    @classmethod
-    def author_name(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.credit_info_author_name
-        '''
-        return bpy.context.scene.dbmt_generatemod.credit_info_author_name
-    
-    @classmethod
-    def author_link(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.credit_info_author_social_link
-        '''
-        return bpy.context.scene.dbmt_generatemod.credit_info_author_social_link
-    
-    @classmethod
-    def export_same_number(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.export_same_number
-        '''
-        return bpy.context.scene.dbmt_generatemod.export_same_number
-    
-    @classmethod
-    def recalculate_tangent(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.recalculate_tangent
-        '''
-        return bpy.context.scene.dbmt_generatemod.recalculate_tangent
-    
-    @classmethod
-    def recalculate_color(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.recalculate_color
-        '''
-        return bpy.context.scene.dbmt_generatemod.recalculate_color
-    
-
-    @classmethod
-    def position_override_filter_draw_type(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.position_override_filter_draw_type
-        '''
-        return bpy.context.scene.dbmt_generatemod.position_override_filter_draw_type
-    
-    @classmethod
-    def vertex_limit_raise_add_filter_index(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.vertex_limit_raise_add_filter_index
-        '''
-        return bpy.context.scene.dbmt_generatemod.vertex_limit_raise_add_filter_index
-
-    @classmethod
-    def slot_style_texture_add_filter_index(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.slot_style_texture_add_filter_index
-        '''
-        return bpy.context.scene.dbmt_generatemod.slot_style_texture_add_filter_index
-    
-    # only_use_marked_texture
-    @classmethod
-    def only_use_marked_texture(cls):
-        '''
-        bpy.context.scene.dbmt_generatemod.only_use_marked_texture
-        '''
-        return bpy.context.scene.dbmt_generatemod.only_use_marked_texture
-    
+            return os.path.join(GlobalConfig.path_appdata_local(), "DBMT-Setting.json")
     
