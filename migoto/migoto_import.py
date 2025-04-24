@@ -4,7 +4,7 @@ from ..utils.collection_utils import *
 from ..config.main_config import *
 from ..properties.properties_wwmi import Properties_WWMI
 from ..properties.properties_import_model import Properties_ImportModel
-
+from ..utils.obj_utils import ExtractedObjectHelper
 from ..utils.obj_utils import ObjUtils
 from ..utils.json_utils import JsonUtils
 

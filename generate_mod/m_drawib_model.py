@@ -13,7 +13,7 @@ from ..utils.timer_utils import *
 from ..utils.migoto_utils import Fatal
 from ..utils.obj_utils import ObjUtils
 
-from ..migoto.migoto_format import ExtractedObject, ExtractedObjectHelper
+from ..utils.obj_utils import ExtractedObject, ExtractedObjectHelper
 
 
 

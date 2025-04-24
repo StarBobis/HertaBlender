@@ -1,13 +1,472 @@
 import bpy
+import json
+import math
+import bmesh
 
 from mathutils import Matrix 
 from mathutils import Vector
 from mathutils import *
 from math import * 
-import math
-import bmesh
+
+from typing import List, Dict, Union
+from dataclasses import dataclass, field, asdict
 
 from .migoto_utils import Fatal
+from .collection_utils import ModelCollection, CollectionUtils
+from .shapekey_utils import ShapeKeyUtils
+from ..properties.properties_wwmi import Properties_WWMI
+from operator import attrgetter, itemgetter
+
+
+
+def assert_object(obj):
+    if isinstance(obj, str):
+        obj = get_object(obj)
+    elif obj not in bpy.data.objects.values():
+        raise ValueError('Not of object type: %s' % str(obj))
+    return obj
+
+
+def get_mode(context):
+    if context.active_object:
+        return context.active_object.mode
+
+
+def set_mode(context, mode):
+    active_object = get_active_object(context)
+    if active_object is not None and mode is not None:
+        if not object_is_hidden(active_object):
+            bpy.ops.object.mode_set(mode=mode)
+
+
+@dataclass
+class UserContext:
+    active_object: bpy.types.Object
+    selected_objects: bpy.types.Object
+    mode: str
+
+
+def get_user_context(context):
+    return UserContext(
+        active_object = get_active_object(context),
+        selected_objects = get_selected_objects(context),
+        mode = get_mode(context),
+    )
+
+
+def set_user_context(context, user_context):
+    deselect_all_objects()
+    for object in user_context.selected_objects:
+        try:
+            select_object(object)
+        except ReferenceError as e:
+            pass
+    if user_context.active_object:
+        set_active_object(context, user_context.active_object)
+        set_mode(context, user_context.mode)
+
+
+def get_object(obj_name):
+    return bpy.data.objects[obj_name]
+        
+
+def get_active_object(context):
+    return context.view_layer.objects.active
+
+
+def get_selected_objects(context):
+    return context.selected_objects
+
+
+def link_object_to_scene(context, obj):
+    context.scene.collection.objects.link(obj)
+
+
+def unlink_object_from_scene(context, obj):
+    context.scene.collection.objects.unlink(obj)
+
+
+def object_exists(obj_name):
+    return obj_name in bpy.data.objects.keys()
+
+
+def link_object_to_collection(obj, col):
+    obj = assert_object(obj)
+    col = assert_collection(col)
+    col.objects.link(obj)
+
+
+def unlink_object_from_collection(obj, col):
+    obj = assert_object(obj)
+    col = assert_collection(col)
+    col.objects.unlink(obj) 
+
+
+def rename_object(obj, obj_name):
+    obj = assert_object(obj)
+    obj.name = obj_name
+    
+
+def select_object(obj):
+    obj = assert_object(obj)
+    obj.select_set(True)
+
+
+def deselect_object(obj):
+    obj = assert_object(obj)
+    obj.select_set(False)
+
+
+def deselect_all_objects():
+    for obj in bpy.context.selected_objects:
+        deselect_object(obj)
+    bpy.context.view_layer.objects.active = None
+
+
+def object_is_selected(obj):
+    return obj.select_get()
+
+
+def set_active_object(context, obj):
+    obj = assert_object(obj)
+    context.view_layer.objects.active = obj
+
+
+def object_is_hidden(obj):
+    return obj.hide_get()
+
+
+def hide_object(obj):
+    obj = assert_object(obj)
+    obj.hide_set(True)
+
+
+def unhide_object(obj):
+    obj = assert_object(obj)
+    obj.hide_set(False)
+
+
+def set_custom_property(obj, property, value):
+    obj = assert_object(obj)
+    obj[property] = value
+
+
+def remove_object(obj):
+    obj = assert_object(obj)
+    bpy.data.objects.remove(obj, do_unlink=True)
+
+
+def get_modifiers(obj):
+    obj = assert_object(obj)
+    return obj.modifiers
+
+
+
+
+
+def copy_object(context, obj, name=None, collection=None):
+    with OpenObject(context, obj, mode='OBJECT') as obj:
+        new_obj = obj.copy()
+        new_obj.data = obj.data.copy()
+        if name:
+            rename_object(new_obj, name)
+        if collection:
+            link_object_to_collection(new_obj, collection)
+        return new_obj
+
+
+def assert_vertex_group(obj, vertex_group):
+    obj = assert_object(obj)
+    if isinstance(vertex_group, bpy.types.VertexGroup):
+        vertex_group = vertex_group.name
+    return obj.vertex_groups[vertex_group]
+
+
+def get_vertex_groups(obj):
+    obj = assert_object(obj)
+    return obj.vertex_groups
+
+
+def remove_vertex_groups(obj, vertex_groups):
+    obj = assert_object(obj)
+    for vertex_group in vertex_groups:
+        obj.vertex_groups.remove(assert_vertex_group(obj, vertex_group))
+
+
+def normalize_all_weights(context, obj):
+    with OpenObject(context, obj, mode='WEIGHT_PAINT') as obj:
+        bpy.ops.object.vertex_group_normalize_all()
+
+
+def triangulate_object(context, obj):
+    with OpenObject(context, obj, mode='OBJECT') as obj:
+        me = obj.data
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bmesh.ops.triangulate(bm, faces=bm.faces[:])
+        bm.to_mesh(me)
+        bm.free()
+
+
+class OpenObjects:
+    def __init__(self, context, objects, mode='OBJECT'):
+        self.mode = mode
+        self.objects = [assert_object(obj) for obj in objects]
+        self.context = context
+        self.user_context = get_user_context(context)
+
+    def __enter__(self):
+
+        deselect_all_objects()
+        
+        for obj in self.objects:
+            unhide_object(obj)
+            select_object(obj)
+            if obj.mode == 'EDIT':
+                obj.update_from_editmode()
+            
+        set_active_object(bpy.context, self.objects[0])
+
+        set_mode(self.context, mode=self.mode)
+
+        return self.objects
+
+    def __exit__(self, *args):
+        set_user_context(self.context, self.user_context)
+
+
+def assert_mesh(mesh):
+    if isinstance(mesh, str):
+        mesh = get_mesh(mesh)
+    elif mesh not in bpy.data.meshes.values():
+        raise ValueError('Not of mesh type: %s' % str(mesh))
+    return mesh
+
+
+def get_mesh(mesh_name):
+    return bpy.data.meshes[mesh_name]
+
+
+def remove_mesh(mesh):
+    mesh = assert_mesh(mesh)
+    bpy.data.meshes.remove(mesh, do_unlink=True)
+
+
+def mesh_triangulate(me):
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+
+
+def get_vertex_groups_from_bmesh(bm: bmesh.types.BMesh):
+    layer_deform = bm.verts.layers.deform.active
+    return [sorted(vert[layer_deform].items(), key=itemgetter(1), reverse=True) for vert in bm.verts]
+
+def join_objects(context, objects):
+    if len(objects) == 1:
+        return
+    unused_meshes = []
+    with OpenObject(context, objects[0], mode='OBJECT'):
+        for obj in objects[1:]:
+            unused_meshes.append(obj.data)
+            select_object(obj)  
+            bpy.ops.object.join()
+    for mesh in unused_meshes:
+        remove_mesh(mesh)
+
+
+def get_collection(col_name):
+    return bpy.data.collections[col_name]
+
+
+def get_layer_collection(col, layer_col=None):
+    col_name = assert_collection(col).name
+    if layer_col is None:
+        #        layer_col = bpy.context.scene.collection
+        layer_col = bpy.context.view_layer.layer_collection
+    if layer_col.name == col_name:
+        return layer_col
+    for sublayer_col in layer_col.children:
+        col = get_layer_collection(col_name, layer_col=sublayer_col)
+        if col:
+            return col
+
+
+def collection_exists(col_name):
+    return col_name in bpy.data.collections.keys()
+
+
+def assert_collection(col):
+    if isinstance(col, str):
+        col = get_collection(col)
+    elif col not in bpy.data.collections.values():
+        raise ValueError('Not of collection type: %s' % str(col))
+    return col
+
+
+def get_collection_objects(col):
+    col = assert_collection(col)
+    return col.objects
+
+
+def link_collection(col, col_parent):
+    col = assert_collection(col)
+    col_parent = assert_collection(col_parent)
+    col_parent.children.link(col)
+
+
+def new_collection(col_name, col_parent=None, allow_duplicate=True):
+    if not allow_duplicate:
+        try:
+            col = get_collection(col_name)
+            if col is not None:
+                raise ValueError('Collection already exists: %s' % str(col_name))
+        except Exception as e:
+            pass
+    new_col = bpy.data.collections.new(col_name)
+    if col_parent:
+        link_collection(new_col, col_parent)
+    else:
+        bpy.context.scene.collection.children.link(new_col)
+    #    bpy.context.view_layer.layer_collection.children[col_name] = new_col
+    #    bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[-1]
+    #    bpy.context.scene.collection.children.link(new_col)
+    return new_col
+
+
+def hide_collection(col):
+    col = assert_collection(col)
+    #    col.hide_viewport = True
+    #    for k, v in bpy.context.view_layer.layer_collection.children.items():
+    #        print(k, " ", v)
+    #    bpy.context.view_layer.layer_collection.children.get(col.name).hide_viewport = True
+    get_layer_collection(col).hide_viewport = True
+
+
+def unhide_collection(col):
+    col = assert_collection(col)
+    #    col.hide_viewport = False
+    #    bpy.context.view_layer.layer_collection.children.get(col.name).hide_viewport = False
+    get_layer_collection(col).hide_viewport = False
+
+
+def collection_is_hidden(col):
+    col = assert_collection(col)
+    return get_layer_collection(col).hide_viewport
+
+
+def get_scene_collections():
+    return bpy.context.scene.collection.children
+
+@dataclass
+class ExtractedObjectComponent:
+    vertex_offset: int
+    vertex_count: int
+    index_offset: int
+    index_count: int
+    vg_offset: int
+    vg_count: int
+    vg_map: Dict[int, int]
+
+
+@dataclass
+class ExtractedObjectShapeKeys:
+    offsets_hash: str = ''
+    scale_hash: str = ''
+    vertex_count: int = 0
+    dispatch_y: int = 0
+    checksum: int = 0
+
+
+@dataclass
+class ExtractedObject:
+    vb0_hash: str
+    cb4_hash: str
+    vertex_count: int
+    index_count: int
+    components: List[ExtractedObjectComponent]
+    shapekeys: ExtractedObjectShapeKeys
+
+    def __post_init__(self):
+        if isinstance(self.shapekeys, dict):
+            self.components = [ExtractedObjectComponent(**component) for component in self.components]
+            self.shapekeys = ExtractedObjectShapeKeys(**self.shapekeys)
+
+    def as_json(self):
+        return json.dumps(asdict(self), indent=4)
+
+
+class ExtractedObjectHelper:
+    '''
+    不用类包起来难受，还是做成工具类好一点。。
+    '''
+    @classmethod
+    def read_metadata(cls,metadata_path: str) -> ExtractedObject:
+        with open(metadata_path) as f:
+            return ExtractedObject(**json.load(f))
+    
+@dataclass
+class TempObject:
+    name: str
+    object: bpy.types.Object
+    vertex_count: int = 0
+    index_count: int = 0
+    index_offset: int = 0
+
+
+@dataclass
+class MergedObjectComponent:
+    objects: List[TempObject]
+    vertex_count: int = 0
+    index_count: int = 0
+
+@dataclass
+class MergedObjectShapeKeys:
+    vertex_count: int = 0
+
+
+@dataclass
+class MergedObject:
+    object: bpy.types.Object
+    mesh: bpy.types.Mesh
+    components: List[MergedObjectComponent]
+    shapekeys: MergedObjectShapeKeys
+    vertex_count: int = 0
+    index_count: int = 0
+    vg_count: int = 0
+
+
+class OpenObject:
+    def __init__(self, context, obj, mode='OBJECT'):
+        self.mode = mode
+        self.object = assert_object(obj)
+        self.context = context
+        self.user_context = get_user_context(context)
+        self.was_hidden = object_is_hidden(self.object)
+
+    def __enter__(self):
+        deselect_all_objects()
+
+        unhide_object(self.object)
+        select_object(self.object)
+        set_active_object(bpy.context, self.object)
+
+        if self.object.mode == 'EDIT':
+            self.object.update_from_editmode()
+
+        set_mode(self.context, mode=self.mode)
+
+        return self.object
+
+    def __exit__(self, *args):
+        if self.was_hidden:
+            hide_object(self.object)
+        else:
+            unhide_object(self.object)
+        set_user_context(self.context, self.user_context)
+
 
 class ObjUtils:
 
@@ -111,7 +570,150 @@ class ObjUtils:
             return True
         else:
             return False
+
+    @classmethod
+    def copy_object(cls,context, obj, name=None, collection=None):
+        with OpenObject(context, obj, mode='OBJECT') as obj:
+            new_obj = obj.copy()
+            new_obj.data = obj.data.copy()
+            if name:
+                rename_object(new_obj, name)
+            if collection:
+                link_object_to_collection(new_obj, collection)
+            return new_obj
     
+    @classmethod
+    def build_merged_object(cls,extracted_object:ExtractedObject,draw_ib_collection):
+        '''
+        extracted_object 用于读取配置
+        draw_ib_collection 用于控制TEMP_Object生成的位置
+        '''
+        # 1.Initialize components
+        components = []
+        for component in extracted_object.components: 
+            components.append(
+                MergedObjectComponent(
+                    objects=[],
+                    index_count=0,
+                )
+            )
+        
+        # 2.import_objects_from_collection
+        # TODO 从这里开始进行修改
+        # 这里是获取所有的obj，需要用咱们的方法来进行集合架构的遍历获取所有的obj
+        componentname_modelcollection_list_dict:dict[str,list[ModelCollection]] = CollectionUtils.parse_drawib_collection_architecture(draw_ib_collection=draw_ib_collection)
+
+        for component_name,model_collection_list in componentname_modelcollection_list_dict.items():
+            for model_collection in model_collection_list:
+                for obj_name in model_collection.obj_name_list:
+                    obj = bpy.data.objects.get(obj_name)
+                    # 跳过不满足component开头的对象
+
+                    print("ComponentName: " + component_name)
+                    component_count = str(component_name)[10:]
+                    print("ComponentCount: " + component_count)
+
+                    component_id = int(component_count) - 1 # 这里减去1是因为我们的Compoennt是从1开始的
+                    
+                    temp_obj = cls.copy_object(bpy.context, obj, name=f'TEMP_{obj.name}', collection=draw_ib_collection)
+
+                    components[component_id].objects.append(TempObject(
+                        name=obj.name,
+                        object=temp_obj,
+                    ))
+
+        # 3.准备临时对象
+        index_offset = 0
+
+        for component_id, component in enumerate(components):
+
+            component.objects.sort(key=lambda x: x.name)
+
+            for temp_object in component.objects:
+                temp_obj = temp_object.object
+                # Remove muted shape keys
+                if Properties_WWMI.ignore_muted_shape_keys() and temp_obj.data.shape_keys:
+                    muted_shape_keys = []
+                    for shapekey_id in range(len(temp_obj.data.shape_keys.key_blocks)):
+                        shape_key = temp_obj.data.shape_keys.key_blocks[shapekey_id]
+                        if shape_key.mute:
+                            muted_shape_keys.append(shape_key)
+                    for shape_key in muted_shape_keys:
+                        temp_obj.shape_key_remove(shape_key)
+                # Apply all modifiers to temporary object
+                if Properties_WWMI.apply_all_modifiers():
+                    with OpenObject(bpy.context, temp_obj) as obj:
+                        selected_modifiers = [modifier.name for modifier in get_modifiers(obj)]
+                        ShapeKeyUtils.apply_modifiers_for_object_with_shape_keys(bpy.context, selected_modifiers, None)
+                # Triangulate temporary object, this step is crucial as export supports only triangles
+                triangulate_object(bpy.context, temp_obj)
+                # Handle Vertex Groups
+                vertex_groups = get_vertex_groups(temp_obj)
+                # Remove ignored or unexpected vertex groups
+                if Properties_WWMI.import_merged_vgmap():
+                    # Exclude VGs with 'ignore' tag or with higher id VG count from Metadata.ini for current component
+                    total_vg_count = sum([component.vg_count for component in extracted_object.components])
+                    ignore_list = [vg for vg in vertex_groups if 'ignore' in vg.name.lower() or vg.index >= total_vg_count]
+                else:
+                    # Exclude VGs with 'ignore' tag or with higher id VG count from Metadata.ini for current component
+                    extracted_component = extracted_object.components[component_id]
+                    total_vg_count = len(extracted_component.vg_map)
+                    ignore_list = [vg for vg in vertex_groups if 'ignore' in vg.name.lower() or vg.index >= total_vg_count]
+                remove_vertex_groups(temp_obj, ignore_list)
+                # Rename VGs to their indicies to merge ones of different components together
+                for vg in get_vertex_groups(temp_obj):
+                    vg.name = str(vg.index)
+                # Calculate vertex count of temporary object
+                temp_object.vertex_count = len(temp_obj.data.vertices)
+                # Calculate index count of temporary object, IB stores 3 indices per triangle
+                temp_object.index_count = len(temp_obj.data.polygons) * 3
+                # Set index offset of temporary object to global index_offset
+                temp_object.index_offset = index_offset
+                # Update global index_offset
+                index_offset += temp_object.index_count
+                # Update vertex and index count of custom component
+                component.vertex_count += temp_object.vertex_count
+                component.index_count += temp_object.index_count
+
+        # build_merged_object:
+
+        merged_object = []
+        vertex_count, index_count = 0, 0
+        for component in components:
+            for temp_object in component.objects:
+                merged_object.append(temp_object.object)
+            vertex_count += component.vertex_count
+            index_count += component.index_count
+            
+        join_objects(bpy.context, merged_object)
+
+        obj = merged_object[0]
+
+        rename_object(obj, 'TEMP_EXPORT_OBJECT')
+
+        deselect_all_objects()
+        select_object(obj)
+        set_active_object(bpy.context, obj)
+
+        mesh = obj.evaluated_get(bpy.context.evaluated_depsgraph_get()).to_mesh()
+
+        merged_object = MergedObject(
+            object=obj,
+            mesh=mesh,
+            components=components,
+            vertex_count=len(obj.data.vertices),
+            index_count=len(obj.data.polygons) * 3,
+            vg_count=len(get_vertex_groups(obj)),
+            shapekeys=MergedObjectShapeKeys(),
+        )
+
+        if vertex_count != merged_object.vertex_count:
+            raise ValueError('vertex_count mismatch between merged object and its components')
+
+        if index_count != merged_object.index_count:
+            raise ValueError('index_count mismatch between merged object and its components')
+        
+        return merged_object
 
 
 class SmoothNormal:

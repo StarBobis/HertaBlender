@@ -3,11 +3,10 @@ import bpy
 import time
 
 class ShapeKeyUtils:
+    # Github: https://github.com/przemir/ApplyModifierForObjectWithShapeKeys
 
     @classmethod
     def apply_modifiers_for_object_with_shape_keys(cls,context, selectedModifiers, disable_armatures):
-        # Github: https://github.com/przemir/ApplyModifierForObjectWithShapeKeys
-
         # ------------------------------------------------------------------------------
         # The MIT License (MIT)
         #
@@ -67,9 +66,16 @@ class ShapeKeyUtils:
         properties = ["interpolation", "mute", "name", "relative_key", "slider_max", "slider_min", "value", "vertex_group"]
         shapesCount = 0
         vertCount = -1
-        
         startTime = time.time()
+        
+        # Inspect modifiers for hints used in error message if needed.
+        contains_mirror_with_merge = False
+        for modifier in context.object.modifiers:
+            if modifier.name in selectedModifiers:
+                if modifier.type == 'MIRROR' and modifier.use_mirror_merge == True:
+                    contains_mirror_with_merge = True
 
+        # Disable armature modifiers.
         disabled_armature_modifiers = []
         if disable_armatures:
             for modifier in context.object.modifiers:
@@ -77,9 +83,11 @@ class ShapeKeyUtils:
                     disabled_armature_modifiers.append(modifier)
                     modifier.show_viewport = False
         
+        # Calculate shape keys count.
         if context.object.data.shape_keys:
             shapesCount = len(context.object.data.shape_keys.key_blocks)
         
+        # If there are no shape keys, just apply modifiers.
         if(shapesCount == 0):
             for modifierName in selectedModifiers:
                 bpy.ops.object.modifier_apply(modifier=modifierName)
@@ -116,11 +124,7 @@ class ShapeKeyUtils:
 
         # Handle base shape in "originalObject"
         print("applyModifierForObjectWithShapeKeys: Applying base shape key")
-
-        # bpy.ops.object.shape_key_remove(all=True)
-        for k in originalObject.data.shape_keys.key_blocks:
-            originalObject.shape_key_remove(k)
-
+        bpy.ops.object.shape_key_remove(all=True)
         for modifierName in selectedModifiers:
             bpy.ops.object.modifier_apply(modifier=modifierName)
         vertCount = len(originalObject.data.vertices)
@@ -140,18 +144,13 @@ class ShapeKeyUtils:
             # Copy temp object.
             bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":(0, 0, 0), "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":True, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_target":'CLOSEST', "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "release_confirm":False, "use_accurate":False})
             tmpObject = context.view_layer.objects.active
-            # bpy.ops.object.shape_key_remove(all=True)
-            for k in tmpObject.data.shape_keys.key_blocks:
-                tmpObject.shape_key_remove(k)
-
+            bpy.ops.object.shape_key_remove(all=True)
             copyObject.select_set(True)
             copyObject.active_shape_key_index = i
             
             # Get right shape-key.
-            bpy.ops.object.shape_key_transfer(use_clamp=True)
+            bpy.ops.object.shape_key_transfer()
             context.object.active_shape_key_index = 0
-
-
             bpy.ops.object.shape_key_remove()
             bpy.ops.object.shape_key_remove(all=True)
             
@@ -161,9 +160,15 @@ class ShapeKeyUtils:
             
             # Verify number of vertices.
             if vertCount != len(tmpObject.data.vertices):
+            
+                errorInfoHint = ""
+                if contains_mirror_with_merge == True:
+                    errorInfoHint = "There is mirror modifier with 'Merge' property enabled. This may cause a problem."
+                if errorInfoHint:
+                    errorInfoHint = "\n\nHint: " + errorInfoHint
                 errorInfo = ("Shape keys ended up with different number of vertices!\n"
                             "All shape keys needs to have the same number of vertices after modifier is applied.\n"
-                            "Otherwise joining such shape keys will fail!")
+                            "Otherwise joining such shape keys will fail!%s" % errorInfoHint)
                 return (False, errorInfo)
         
             # Join with originalObject
@@ -175,13 +180,19 @@ class ShapeKeyUtils:
             context.view_layer.objects.active = tmpObject
             
             # Remove tmpObject
+            tmpMesh = tmpObject.data
             bpy.ops.object.delete(use_global=False)
+            bpy.data.meshes.remove(tmpMesh)
         
         # Restore shape key properties like name, mute etc.
         context.view_layer.objects.active = originalObject
         for i in range(0, shapesCount):
             key_b = context.view_layer.objects.active.data.shape_keys.key_blocks[i]
+            # name needs to be restored before relative_key
             key_b.name = list_properties[i]["name"]
+            
+        for i in range(0, shapesCount):
+            key_b = context.view_layer.objects.active.data.shape_keys.key_blocks[i]
             key_b.interpolation = list_properties[i]["interpolation"]
             key_b.mute = list_properties[i]["mute"]
             key_b.slider_max = list_properties[i]["slider_max"]
@@ -195,14 +206,14 @@ class ShapeKeyUtils:
                 if rel_key == key_brel.name:
                     key_b.relative_key = key_brel
                     break
-
-            context.view_layer.objects.active.data.update()
         
         # Remove copyObject.
         originalObject.select_set(False)
         context.view_layer.objects.active = copyObject
         copyObject.select_set(True)
+        tmpMesh = copyObject.data
         bpy.ops.object.delete(use_global=False)
+        bpy.data.meshes.remove(tmpMesh)
         
         # Select originalObject.
         context.view_layer.objects.active = originalObject

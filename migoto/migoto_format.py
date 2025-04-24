@@ -12,53 +12,24 @@ from dataclasses import dataclass, field, asdict
 from ..utils.migoto_utils import *
 
 
-@dataclass
-class ExtractedObjectComponent:
-    vertex_offset: int
-    vertex_count: int
-    index_offset: int
-    index_count: int
-    vg_offset: int
-    vg_count: int
-    vg_map: Dict[int, int]
+class M_DrawIndexed:
+    def __init__(self) -> None:
+        self.DrawNumber = ""
 
+        # 绘制起始位置
+        self.DrawOffsetIndex = "" 
 
-@dataclass
-class ExtractedObjectShapeKeys:
-    offsets_hash: str = ''
-    scale_hash: str = ''
-    vertex_count: int = 0
-    dispatch_y: int = 0
-    checksum: int = 0
+        self.DrawStartIndex = "0"
 
+        # 代表一个obj具体的draw_indexed
+        self.AliasName = "" 
 
-@dataclass
-class ExtractedObject:
-    vb0_hash: str
-    cb4_hash: str
-    vertex_count: int
-    index_count: int
-    components: List[ExtractedObjectComponent]
-    shapekeys: ExtractedObjectShapeKeys
-
-    def __post_init__(self):
-        if isinstance(self.shapekeys, dict):
-            self.components = [ExtractedObjectComponent(**component) for component in self.components]
-            self.shapekeys = ExtractedObjectShapeKeys(**self.shapekeys)
-
-    def as_json(self):
-        return json.dumps(asdict(self), indent=4)
-
-
-class ExtractedObjectHelper:
-    '''
-    不用类包起来难受，还是做成工具类好一点。。
-    '''
-    @classmethod
-    def read_metadata(cls,metadata_path: str) -> ExtractedObject:
-        with open(metadata_path) as f:
-            return ExtractedObject(**json.load(f))
+        # 代表这个obj的顶点数
+        self.UniqueVertexCount = 0 
     
+    def get_draw_str(self) ->str:
+        return "drawindexed = " + self.DrawNumber + "," + self.DrawOffsetIndex +  "," + self.DrawStartIndex
+
 
 @dataclass
 class D3D11Element:
