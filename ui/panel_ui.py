@@ -5,7 +5,7 @@ from ..utils.migoto_utils import *
 from ..config.main_config import * 
 from ..generate_mod.m_export_mod import *
 
-from ..config.properties_dbmt_path import Properties_DBMT_Path
+from ..properties.properties_dbmt_path import Properties_DBMT_Path
 
 
 # 用于选择DBMT所在文件夹，主要是这里能自定义逻辑从而实现保存DBMT路径，这样下次打开就还能读取到。

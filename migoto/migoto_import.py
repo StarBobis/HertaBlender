@@ -2,8 +2,8 @@ from ..utils.config_utils import *
 from .migoto_format import *
 from ..utils.collection_utils import *
 from ..config.main_config import *
-from ..config.properties_wwmi import Properties_WWMI
-from ..config.properties_import_model import Properties_ImportModel
+from ..properties.properties_wwmi import Properties_WWMI
+from ..properties.properties_import_model import Properties_ImportModel
 
 from ..utils.obj_utils import ObjUtils
 from ..utils.json_utils import JsonUtils
@@ -542,7 +542,6 @@ class DBMTImportAllFromCurrentWorkSpace(bpy.types.Operator):
             self.report({"ERROR"},"Please select a correct WorkSpace in DBMT before import " + GlobalConfig.path_workspace_folder())
         else:
             TimerUtils.Start("ImportFromWorkSpace")
-            # TODO 导入实在是太慢了，WWMI的模型导入要13秒，还好导入模型这个操作并不是很频繁，有空再来优化吧。
             ImprotFromWorkSpace(self,context)
             TimerUtils.End("ImportFromWorkSpace")
         return {'FINISHED'}

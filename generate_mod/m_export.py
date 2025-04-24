@@ -11,7 +11,7 @@ from ..migoto.migoto_format import D3D11GameType
 
 from ..config.main_config import GlobalConfig,GameCategory
 
-from ..config.properties_generate_mod import Properties_GenerateMod
+from ..properties.properties_generate_mod import Properties_GenerateMod
 
 class BufferDataConverter:
     '''

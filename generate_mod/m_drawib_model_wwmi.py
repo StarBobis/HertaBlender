@@ -2,7 +2,7 @@ import numpy
 import struct
 import re
 from time import time
-from ..config.properties_wwmi import Properties_WWMI
+from ..properties.properties_wwmi import Properties_WWMI
 from .m_export import get_buffer_ib_vb_fast
 
 from ..migoto.migoto_format import *
@@ -824,7 +824,7 @@ def build_merged_object(extracted_object:ExtractedObject,draw_ib_collection, com
 
 
 
-class WorkSpaceConfig:
+class ImportConfig:
     '''
     在一键导入工作空间时，Import.json会记录导入的GameType，在生成Mod时需要用到
     所以这里我们读取Import.json来确定要从哪个提取出来的数据类型文件夹中读取
@@ -920,15 +920,15 @@ class DrawIBModelWWMI:
         self.draw_ib_alias = drawib_collection_name_splits[1]
 
         # (1) 读取工作空间中配置文件的配置项
-        self.work_space_config = WorkSpaceConfig(draw_ib=self.draw_ib)
-        self.d3d11GameType:D3D11GameType = self.work_space_config.d3d11GameType
+        self.import_config = ImportConfig(draw_ib=self.draw_ib)
+        self.d3d11GameType:D3D11GameType = self.import_config.d3d11GameType
         # 读取WWMI专属配置
         self.extracted_object:ExtractedObject = None
         metadatajsonpath = GlobalConfig.path_extract_gametype_folder(draw_ib=self.draw_ib,gametype_name=self.d3d11GameType.GameTypeName)  + "Metadata.json"
         if os.path.exists(metadatajsonpath):
             self.extracted_object = ExtractedObjectHelper.read_metadata(metadatajsonpath)
 
-        
+
         # (2) 解析集合架构，获得每个DrawIB中，每个Component对应的obj列表及其相关属性
         self.componentname_modelcollection_list_dict:dict[str,list[ModelCollection]] = CollectionUtils.parse_drawib_collection_architecture(draw_ib_collection=draw_ib_collection)
 

@@ -1,6 +1,4 @@
 import bpy
-from bpy.props import FloatProperty, IntProperty
-from .main_config import GlobalConfig
 
 
 class Properties_GenerateMod(bpy.types.PropertyGroup):

@@ -9,10 +9,10 @@ class Properties_DBMT_Path(bpy.types.PropertyGroup):
         script_path = os.path.abspath(__file__)
 
         # 获取当前插件的工作目录
-        plugin_directory = os.path.dirname(script_path)
+        plugin_directory = os.path.dirname(os.path.dirname(script_path))
 
         # 构建配置文件的路径
-        config_path = os.path.join(plugin_directory, 'Config.json')
+        config_path = os.path.join(plugin_directory, 'config\\Config.json')
 
         # 读取文件
         with open(config_path, 'r') as file:

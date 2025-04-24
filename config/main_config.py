@@ -2,7 +2,7 @@ import bpy
 import os
 import json
 
-from .properties_dbmt_path import Properties_DBMT_Path
+from ..properties.properties_dbmt_path import Properties_DBMT_Path
 
 class GameCategory:
     UnityVS = "UnityVS"

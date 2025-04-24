@@ -3,7 +3,7 @@ import shutil
 from .m_ini_builder import *
 from .m_drawib_model import *
 from .m_ini_helper import M_IniHelper
-from ..config.properties_wwmi import Properties_WWMI
+from ..properties.properties_wwmi import Properties_WWMI
 
 
 

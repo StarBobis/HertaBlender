@@ -5,7 +5,7 @@ from .m_ini_builder import *
 from .m_drawib_model import *
 from .m_ini_helper import M_IniHelper
 
-from ..config.properties_generate_mod import Properties_GenerateMod
+from ..properties.properties_generate_mod import Properties_GenerateMod
 
 
 

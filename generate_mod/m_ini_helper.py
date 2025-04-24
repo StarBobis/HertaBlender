@@ -5,7 +5,7 @@ from .m_ini_builder import *
 from ..utils.json_utils import JsonUtils
 from ..config.main_config import GlobalConfig
 from .m_drawib_model import DrawIBModel,ModelCollection
-from ..config.properties_generate_mod import Properties_GenerateMod
+from ..properties.properties_generate_mod import Properties_GenerateMod
 
 
 class M_IniHelper:

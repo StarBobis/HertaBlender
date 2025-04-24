@@ -6,3 +6,4 @@ Test_WWMI/
 Test_SRMI/
 herta-blender_updater/
 WWMI-Tools/
+config/Config.json
