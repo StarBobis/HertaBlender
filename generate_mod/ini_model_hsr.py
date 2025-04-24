@@ -238,7 +238,7 @@ class M_HSRIniModel:
                 texture_override_ib_section.append(drawindexed_str)
             cls.global_key_index_logic = added_global_key_index_logic
             
-            if cls.vlr_filter_index_indent:
+            if cls.vlr_filter_index_indent != "":
                 texture_override_ib_section.append("endif")
                 texture_override_ib_section.new_line()
 
