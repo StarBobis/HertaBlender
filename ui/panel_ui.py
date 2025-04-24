@@ -21,7 +21,7 @@ class OBJECT_OT_select_dbmt_folder(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         if self.directory:
-            scene.dbmt.path = self.directory
+            scene.dbmt_path.path = self.directory
             # print(f"Selected folder: {self.directory}")
             # 在这里放置你想要执行的逻辑
             # 比如验证路径是否有效、初始化某些资源等

@@ -48,7 +48,7 @@ class GlobalConfig:
         config_path = os.path.join(plugin_directory, 'Config.json')
 
         # 创建字典对象
-        config = {'dbmt_path': bpy.context.scene.dbmt.path}
+        config = {'dbmt_path': bpy.context.scene.dbmt_path.path}
 
         # 将字典对象转换为 JSON 格式的字符串
         json_data = json.dumps(config)
