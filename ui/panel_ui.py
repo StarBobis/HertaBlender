@@ -170,8 +170,8 @@ class PanelButtons(bpy.types.Panel):
         if GlobalConfig.gamename == "HSR" or GlobalConfig.gamename == "AILIMIT":
             layout.operator("dbmt.export_mod_hsr_32",text="生成XXMI格式Mod",icon='EXPORT')
         elif GlobalConfig.gamename == "WWMI":
-            layout.operator("dbmt.export_unreal_vs_mod_to_workspace")
-            layout.operator("herta.export_mod_wwmi",text="生成WWMI格式Mod(仅开发测试使用)",icon='EXPORT')
+            layout.operator("dbmt.export_unreal_vs_mod_to_workspace",text="生成Mod测试版1(Merged模式有BUG，后续版本将修复)",icon='EXPORT')
+            layout.operator("herta.export_mod_wwmi",text="生成Mod测试版2(Merged模式有BUG，后续版本将修复)",icon='EXPORT')
         else:
             if GlobalConfig.get_game_category() == GameCategory.UnityVS:
                 layout.operator("dbmt.export_unity_vs_mod_to_workspace_seperated")

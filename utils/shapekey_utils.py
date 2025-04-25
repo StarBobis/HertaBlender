@@ -1,6 +1,8 @@
 
 import bpy
 import time
+import numpy
+from typing import List, Tuple, Dict, Optional
 
 class ShapeKeyUtils:
     # Github: https://github.com/przemir/ApplyModifierForObjectWithShapeKeys
@@ -224,3 +226,51 @@ class ShapeKeyUtils:
                 modifier.show_viewport = True
         
         return (True, None)
+
+    @classmethod
+    def fetch_data(cls, 
+                   data_source, 
+                   data_name: str, 
+                   data_type: numpy.dtype, 
+                   size: int = 0) -> numpy.ndarray:
+        
+        if size == 0:
+            size = len(data_source)
+        result = numpy.empty((size,3), dtype=data_type)
+        data_source.foreach_get(data_name, result.ravel())
+        return result
+    
+    @classmethod
+    def get_shapekey_data(cls, 
+                          obj: bpy.types.Object, 
+                          names_filter: Optional[List[str]] = None, 
+                          deduct_basis = False) -> Dict[str, numpy.ndarray]:
+        
+        start_time = time.time()
+
+        
+        numpy_type = numpy.float32
+
+        base_data = None
+        if deduct_basis:
+            base_data = cls.fetch_data(obj.data.shape_keys.key_blocks['Basis'].data, 'co', numpy_type)
+
+        result = {}
+
+        for shapekey in obj.data.shape_keys.key_blocks:
+            if names_filter is not None:
+                if shapekey.name not in names_filter:
+                    continue
+            elif deduct_basis and shapekey.name == 'Basis':
+                continue
+
+            data = cls.fetch_data(shapekey.data, 'co', numpy_type)
+
+            if deduct_basis:
+                data -= base_data
+
+            result[shapekey.name] = data
+
+        print(f'Shape Keys fetch time: {time.time() - start_time :.3f}s ({len(result)} shapekeys)')
+
+        return result
