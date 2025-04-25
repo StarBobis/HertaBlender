@@ -114,27 +114,22 @@ class MigotoUtils:
     
     @classmethod
     def apply_format_conversion(cls, data, fmt):
+        '''
+        从指定格式导入时必须经过转换，否则丢失精度。
+        '''
         if cls.unorm16_pattern.match(fmt):
-            encode_func = lambda x: numpy.around(x * 65535.0).astype(numpy.uint16)
             decode_func = lambda x: (x / 65535.0).astype(numpy.float32)
         elif cls.unorm8_pattern.match(fmt):
-            encode_func = lambda x: numpy.around(x * 255.0).astype(numpy.uint8)
             decode_func = lambda x: (x / 255.0).astype(numpy.float32)
         elif cls.snorm16_pattern.match(fmt):
-            encode_func = lambda x: numpy.around(x * 32767.0).astype(numpy.int16)
             decode_func = lambda x: (x / 32767.0).astype(numpy.float32)
         elif cls.snorm8_pattern.match(fmt):
-            encode_func = lambda x: numpy.around(x * 127.0).astype(numpy.int8)
             decode_func = lambda x: (x / 127.0).astype(numpy.float32)
         else:
-            return data  # 如果格式不匹配，直接返回原始数据
-
-        # 使用numpy.vectorize来对整个ndarray应用decode_func
-        vectorized_decode = numpy.vectorize(decode_func, otypes=[numpy.float32])
+            return data  # 如果格式不在这四个里面的任意一个，则直接返回原始数据
 
         # 对输入数据应用转换
         decoded_data = decode_func(data)
-
         return decoded_data
 
 

@@ -162,6 +162,8 @@ class DrawIBModelWWMI:
                 # 此时如果能获取到，说明有效，此时可以直接放入准备好的字典
                 shapekey_data[vertex_index][shapekey_index] = list(vertex_offset)
 
+        # shapekey_index_list.sort()
+
         # 转换格式问题
         shapekey_cache = {shapekey_id:{} for shapekey_id in shapekey_index_list}
 

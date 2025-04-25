@@ -118,14 +118,14 @@ class BufferDataConverter:
             # 如果权重含有NaN值，则将该行的所有值设置为0。
             # 因为权重只要是被刷过，就不会出现NaN值。
             find_nan = False
-            # for w in weights:
-            #     if math.isnan(w):
-            #         row_normalized = [0, 0, 0, 0]
-            #         result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
-            #         find_nan = True
-            #         break
-            #         # print(weights)
-            #         # raise Fatal("NaN found in weights")
+            for w in weights:
+                if math.isnan(w):
+                    row_normalized = [0, 0, 0, 0]
+                    result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
+                    find_nan = True
+                    break
+                    # print(weights)
+                    # raise Fatal("NaN found in weights")
             
             if not find_nan:
                 # 对每一行调用 normalize_weights 方法
