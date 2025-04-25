@@ -62,13 +62,11 @@ def import_shapekeys(mesh, obj, shapekeys):
 def import_vertex_groups(mesh, obj, blend_indices, blend_weights,component):
     assert (len(blend_indices) == len(blend_weights))
     if blend_indices:
-
         # We will need to make sure we re-export the same blend indices later -
         # that they haven't been renumbered. Not positive whether it is better
         # to use the vertex group index, vertex group name or attach some extra
         # data. Make sure the indices and names match:
         if component is None:
-            # 继续使用旧代码逻辑
             num_vertex_groups = max(itertools.chain(*itertools.chain(*blend_indices.values()))) + 1
         else:
             num_vertex_groups = max(component.vg_map.values()) + 1
@@ -128,41 +126,6 @@ def import_uv_layers(mesh, obj, texcoords):
             
             # 批量设置UV数据（自动处理numpy数组）
             blender_uvs.data.foreach_set('uv', uv_array)
-
-# def import_uv_layers(mesh, obj, texcoords):
-#     for (texcoord, data) in sorted(texcoords.items()):
-#         dim = len(data[0])
-#         if dim == 4:
-#             components_list = ('xy', 'zw')
-#         elif dim == 2:
-#             components_list = ('xy',)
-#         else:
-#             raise Fatal('Unhandled TEXCOORD dimension: %i' % dim)
-#         cmap = {'x': 0, 'y': 1, 'z': 2, 'w': 3}
-
-#         for components in components_list:
-#             uv_name = 'TEXCOORD%s.%s' % (texcoord if texcoord else '', components)
-#             mesh.uv_layers.new(name=uv_name)
-#             blender_uvs = mesh.uv_layers[uv_name]
-
-#             # 预计算每个顶点的翻转后的UV坐标
-#             c0 = cmap[components[0]]
-#             c1 = cmap[components[1]]
-#             uvs_vertex = [(d[c0], 1.0 - d[c1]) for d in data]
-
-#             # 获取所有循环的顶点索引
-#             loops = mesh.loops
-#             vertex_indices = [l.vertex_index for l in loops]
-
-#             # 生成扁平的UV数组
-#             uv_array = [0.0] * (2 * len(loops))
-#             for i, vi in enumerate(vertex_indices):
-#                 u, v = uvs_vertex[vi]
-#                 uv_array[2 * i] = u
-#                 uv_array[2 * i + 1] = v
-
-#             # 批量设置UV数据
-#             blender_uvs.data.foreach_set('uv', uv_array)
 
 
 def find_texture(texture_prefix, texture_suffix, directory):
@@ -292,7 +255,6 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
 
     # 导入vb文件中的数据
 
-    TimerUtils.Start("Read VBData")
     vb_stride = fmt_dtype.itemsize
     vb_vertex_count = int(vb_file_size / vb_stride)
     vb_data = numpy.fromfile(vb_path, dtype=fmt_dtype, count=vb_vertex_count)
@@ -357,11 +319,8 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             blend_weights[tmpi] = new_dict
             tmpi = tmpi + 1
 
-    TimerUtils.End("Read VBData")
 
-    TimerUtils.Start("UV")
     import_uv_layers(mesh, obj, texcoords)
-    TimerUtils.End("UV")
 
     #  metadata.json, if contains then we can import merged vgmap.
     component = None
