@@ -273,8 +273,8 @@ class DrawIBModel:
                         if not all_vgs_locked:
                             ObjUtils.normalize_all(obj)
 
-                    ib, category_buffer_dict,index_vertex_id_dict = get_buffer_ib_vb_fast(self.d3d11GameType)
-                    self.__obj_name_index_vertex_id_dict[obj_name] = index_vertex_id_dict
+                    ib, category_buffer_dict = get_buffer_ib_vb_fast(self.d3d11GameType)
+                    # self.__obj_name_index_vertex_id_dict[obj_name] = index_vertex_id_dict
                     
                     self.__obj_name_ib_dict[obj.name] = ib
                     self.__obj_name_category_buffer_list_dict[obj.name] = category_buffer_dict
