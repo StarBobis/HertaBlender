@@ -614,9 +614,9 @@ class ObjUtils:
                     obj = bpy.data.objects.get(obj_name)
                     # 跳过不满足component开头的对象
 
-                    print("ComponentName: " + component_name)
+                    # print("ComponentName: " + component_name)
                     component_count = str(component_name)[10:]
-                    print("ComponentCount: " + component_count)
+                    # print("ComponentCount: " + component_count)
 
                     component_id = int(component_count) - 1 # 这里减去1是因为我们的Compoennt是从1开始的
                     

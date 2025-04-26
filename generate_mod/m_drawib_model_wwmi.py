@@ -78,7 +78,7 @@ class DrawIBModelWWMI:
         obj = self.merged_object.object
         bpy.context.view_layer.objects.active = obj
         
-        ib, category_buffer_dict, index_vertex_id_dict = get_buffer_ib_vb_fast(self.d3d11GameType)
+        ib, category_buffer_dict = get_buffer_ib_vb_fast(self.d3d11GameType)
         
 
         # (9) 构建每个Category的VertexBuffer，每个Category都生成一个CategoryBuffer文件。
@@ -104,11 +104,6 @@ class DrawIBModelWWMI:
         position_stride = self.d3d11GameType.CategoryStrideDict["Position"]
         position_bytelength = len(self.__categoryname_bytelist_dict["Position"])
         self.draw_number = int(position_bytelength/position_stride)
-
-        self.draw_number = self.merged_object.vertex_count
-        print(self.draw_number)
-        print(self.merged_object.vertex_count)
-
 
         # (11) 拼接ShapeKey数据
         if obj.data.shape_keys is None or len(getattr(obj.data.shape_keys, 'key_blocks', [])) == 0:
@@ -165,6 +160,7 @@ class DrawIBModelWWMI:
         self.shapekey_vertex_ids = shapekey_vertex_ids
         self.shapekey_vertex_offsets = shapekey_vertex_offsets_np
 
+        bpy.data.objects.remove(obj, do_unlink=True)
 
         # (12) 导出Buffer文件，Export Index Buffer files, Category Buffer files. (And Export ShapeKey Buffer Files.(WWMI))
         # 用于写出IB时使用

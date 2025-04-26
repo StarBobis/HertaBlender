@@ -246,8 +246,7 @@ class ShapeKeyUtils:
                           names_filter: Optional[List[str]] = None, 
                           deduct_basis = False) -> Dict[str, numpy.ndarray]:
         
-        start_time = time.time()
-
+        # start_time = time.time()
         
         numpy_type = numpy.float32
 
@@ -271,6 +270,6 @@ class ShapeKeyUtils:
 
             result[shapekey.name] = data
 
-        print(f'Shape Keys fetch time: {time.time() - start_time :.3f}s ({len(result)} shapekeys)')
+        # print(f'Shape Keys fetch time: {time.time() - start_time :.3f}s ({len(result)} shapekeys)')
 
         return result

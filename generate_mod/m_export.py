@@ -53,7 +53,6 @@ class BufferDataConverter:
     
     @classmethod
     def convert_4x_float32_to_r8g8b8a8_unorm_blendweights(cls, input_array:numpy.ndarray):
-        TimerUtils.Start("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
 
         # 核心转换流程
         scaled = input_array * 255.0                  # 缩放至0-255范围
@@ -61,49 +60,7 @@ class BufferDataConverter:
         clamped = numpy.clip(rounded, 0, 255)          # 约束数值范围
         result = clamped.astype(numpy.uint8)           # 转换为uint8
 
-        TimerUtils.End("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
         return result
-    
-    # @classmethod
-    # def convert_4x_float32_to_r8g8b8a8_unorm_blendweights(cls, input_array):
-    #     # TODO 太慢了，这里要执行216714次normalize_weights方法，
-
-    #     # numpy.around((numpy.fromiter(data, numpy.float32) * 255.0)).astype(numpy.uint8)
-
-
-    #     TimerUtils.Start("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
-    #     # print(f"Input shape: {input_array.shape}")  # 输出形状 (1896, 4)
-
-    #     result = numpy.zeros_like(input_array, dtype=numpy.uint8)
-
-    #     total = 0
-    #     for i in range(input_array.shape[0]):
-
-    #         weights = input_array[i]
-
-    #         # 如果权重含有NaN值，则将该行的所有值设置为0。
-    #         # 因为权重只要是被刷过，就不会出现NaN值。
-    #         find_nan = False
-    #         for w in weights:
-    #             if math.isnan(w):
-    #                 row_normalized = [0, 0, 0, 0]
-    #                 result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
-    #                 find_nan = True
-    #                 break
-    #                 # print(weights)
-    #                 # raise Fatal("NaN found in weights")
-            
-    #         if not find_nan:
-    #             # 对每一行调用 normalize_weights 方法
-    #             row_normalized = cls.normalize_weights(input_array[i])
-    #             result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
-            
-    #         total = total + 1
-
-    #     print("total: " + str(total))
-    #     TimerUtils.End("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
-
-    #     return result
     
     @classmethod
     def convert_4x_float32_to_r16g16b16a16_unorm(cls, input_array):
@@ -383,7 +340,6 @@ class BufferModel:
                 # TimerUtils.End("Position Get") # 0:00:00.057535 
 
             elif d3d11_element_name == 'NORMAL':
-                TimerUtils.Start("Parse NORMAL")
                 if d3d11_element.Format == 'R16G16B16A16_FLOAT':
                     result = numpy.ones(mesh_loops_length * 4, dtype=numpy.float32)
                     normals = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
@@ -439,12 +395,10 @@ class BufferModel:
                     # 将一维数组 reshape 成 (mesh_loops_length, 3) 形状的二维数组
                     result = result.reshape(-1, 3)
                     self.element_vertex_ndarray[d3d11_element_name] = result
-                TimerUtils.End("Parse NORMAL")
                 
 
 
             elif d3d11_element_name == 'TANGENT':
-                TimerUtils.Start("Parse TANGENT")
 
                 result = numpy.empty(mesh_loops_length * 4, dtype=numpy.float32)
 
@@ -482,7 +436,6 @@ class BufferModel:
 
                 self.element_vertex_ndarray[d3d11_element_name] = result
 
-                TimerUtils.End("Parse TANGENT")
 
 
             elif d3d11_element_name.startswith('COLOR'):
@@ -521,8 +474,6 @@ class BufferModel:
                 # TimerUtils.End("GET TEXCOORD")
                         
             elif d3d11_element_name.startswith('BLENDINDICES'):
-                TimerUtils.Start("Parse BLENDINDICES")
-                
                 if d3d11_element.Format == "R32G32B32A32_SINT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices
                 elif d3d11_element.Format == "R32G32B32A32_UINT":
@@ -539,24 +490,18 @@ class BufferModel:
                     blendindices.astype(numpy.uint8)
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices
                 
-                TimerUtils.End("Parse BLENDINDICES")
-
-                
             elif d3d11_element_name.startswith('BLENDWEIGHT'):
-                TimerUtils.Start("Parse BLENDWEIGHT")
-
                 # patch时跳过生成数据
                 if d3d11_element.Format == "R32G32B32A32_FLOAT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendweights
                 elif d3d11_element.Format == "R32G32_FLOAT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendweights[:, :2]
                 elif d3d11_element.Format == 'R8G8B8A8_SNORM':
-                    print("BLENDWEIGHT R8G8B8A8_SNORM")
+                    # print("BLENDWEIGHT R8G8B8A8_SNORM")
                     self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_snorm(blendweights)
                 elif d3d11_element.Format == 'R8G8B8A8_UNORM':
-                    print("BLENDWEIGHT R8G8B8A8_UNORM")
+                    # print("BLENDWEIGHT R8G8B8A8_UNORM")
                     self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm_blendweights(blendweights)
-                TimerUtils.End("Parse BLENDWEIGHT")
                 
 
     def calc_index_vertex_buffer(self,obj,mesh:bpy.types.Mesh):
@@ -611,31 +556,11 @@ class BufferModel:
             '''
             不保持相同顶点时，仍然使用我们经典而又快速的方法
             '''
-            index_vertex_id_dict = {}
             indexed_vertices = collections.OrderedDict()
-            # 最快的方法，但是由于要兼容鸣潮架构，所以只有在Unity游戏中能用
-            if GlobalConfig.get_game_category() == GameCategory.UnityCS or GlobalConfig.get_game_category() == GameCategory.UnityVS:
-                
-                ib = [[indexed_vertices.setdefault(self.element_vertex_ndarray[blender_lvertex.index].tobytes(), len(indexed_vertices))
-                        for blender_lvertex in mesh.loops[poly.loop_start:poly.loop_start + poly.loop_total]
-                            ]for poly in mesh.polygons] 
+            ib = [[indexed_vertices.setdefault(self.element_vertex_ndarray[blender_lvertex.index].tobytes(), len(indexed_vertices))
+                    for blender_lvertex in mesh.loops[poly.loop_start:poly.loop_start + poly.loop_total]
+                        ]for poly in mesh.polygons] 
             
-            # 很显然上面注释掉的才是最快的，但是没办法在WWMI中，我们必须得获取每个draw的索引对应的顶点索引，以保证形态键数据能够正确获取
-            elif GlobalConfig.get_game_category() == GameCategory.UnrealCS or GlobalConfig.get_game_category() == GameCategory.UnrealVS:
-                ib = []
-                for poly in mesh.polygons:
-                    loop_indices = []
-                    for blender_lvertex in mesh.loops[poly.loop_start:poly.loop_start + poly.loop_total]:
-                        vertex_bytes = self.element_vertex_ndarray[blender_lvertex.index].tobytes()
-                        index = indexed_vertices.setdefault(vertex_bytes, len(indexed_vertices))
-                        loop_indices.append(index)
-                        # 在这里可以执行额外的操作，例如：
-                        # print(f"Processed vertex with bytes {vertex_bytes}")
-                        # 或者更新其他状态
-                        index_vertex_id_dict[index] = blender_lvertex.vertex_index
-                    ib.append(loop_indices)   
-
-
         flattened_ib = [item for sublist in ib for item in sublist]
         # TimerUtils.End("Calc IB VB")
 
@@ -657,8 +582,8 @@ class BufferModel:
         for categoryname,category_stride in category_stride_dict.items():
             category_buffer_dict[categoryname] = data_matrix[:,stride_offset:stride_offset + category_stride].flatten()
             stride_offset += category_stride
-        # TimerUtils.End("Calc CategoryBuffer")
-        return flattened_ib,category_buffer_dict,index_vertex_id_dict
+
+        return flattened_ib,category_buffer_dict
 
 def get_buffer_ib_vb_fast(d3d11GameType:D3D11GameType):
     '''
@@ -683,7 +608,10 @@ def get_buffer_ib_vb_fast(d3d11GameType:D3D11GameType):
     # 读取并解析数据
     buffer_model.parse_elementname_ravel_ndarray_dict(mesh)
 
-    return buffer_model.calc_index_vertex_buffer(obj, mesh)
+    # 计算IndexBuffer和CategoryBufferDict
+    ib, category_buffer_dict = buffer_model.calc_index_vertex_buffer(obj, mesh)
+
+    return ib, category_buffer_dict
 
 
 
