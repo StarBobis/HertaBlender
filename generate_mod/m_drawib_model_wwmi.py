@@ -130,12 +130,7 @@ class DrawIBModelWWMI:
 
         shapekey_verts_count = 0
 
-        # TODO 为什么生成的Mod的形态键总是不正确？
         vertex_ids = numpy.arange(len(obj.data.vertices))
-        
-        
-
-        # TODO 这里需要测试是否正确
         for group_id in range(128):
 
             shapekey = shapekeys.get(shapekey_ids.get(group_id, -1), None)
@@ -170,110 +165,22 @@ class DrawIBModelWWMI:
         self.shapekey_vertex_ids = shapekey_vertex_ids
         self.shapekey_vertex_offsets = shapekey_vertex_offsets_np
 
-        # # 形态键数据
-        # self.shapekey_offsets = []
-        # self.shapekey_vertex_ids = []
-        # self.shapekey_vertex_offsets = []
 
-        # # 从模型中读取形态键部分，生成形态键数据所需的Buffer
-        # shapekey_index_list = []
-        # shapekey_data = {}
-
-        # mesh = obj.data
-        # mesh_shapekeys = mesh.shape_keys
-        # base_data = mesh_shapekeys.key_blocks['Basis'].data
-        # for shapekey in mesh_shapekeys.key_blocks:
-        #     # 截取形态键名称中的形态键shapekey_id，获取不到就跳过
-        #     shapekey_pattern = re.compile(r'.*(?:deform|custom)[_ -]*(\d+).*')
-        #     match = shapekey_pattern.findall(shapekey.name.lower())
-        #     if len(match) == 0:
-        #         # print("当前形态键名称:" +shapekey.name + " 不是以Deform开头的，进行跳过")
-        #         continue
-
-        #     shapekey_index = int(match[0])
-
-        #     # 因为WWMI的形态键数量只有128个，这里shapekey_id是从0开始的，所以到127结束，所以不能大于等于128
-        #     if shapekey_index >= 128:
-        #         break
-
-        #     if shapekey_index not in shapekey_index_list:
-        #         # print("添加形态键Index: " + str(shapekey_index))
-        #         shapekey_index_list.append(shapekey_index)
-
-        #     # 对于这个obj的每个顶点，我们都要尝试从当前shapekey中获取数据，如果获取到了，就放入缓存
-        #     for vertex_index in range(len(mesh.vertices)):
-        #         base_vertex_coords = base_data[vertex_index].co
-        #         shapekey_vertex_coords = shapekey.data[vertex_index].co
-        #         vertex_offset = shapekey_vertex_coords - base_vertex_coords
-        #         # 到这里已经有vertex_id、shapekey_id、vertex_offset了，就不用像WWMI一样再从缓存读取了
-
-        #         if vertex_index not in shapekey_data:
-        #             shapekey_data[vertex_index] = {}
-
-        #         # 如果相差太小，说明无效或者是一样的，说明这个顶点没有ShapeKey，此时向ShapeKeyOffsets中添加空的0
-        #         if vertex_offset.length < 0.000000001:
-        #             # print("相差太小，跳过处理。")
-        #             continue
-                
-        #         # 此时如果能获取到，说明有效，此时可以直接放入准备好的字典
-        #         shapekey_data[vertex_index][shapekey_index] = list(vertex_offset)
-
-        # # shapekey_index_list.sort()
-
-        # # 转换格式问题
-        # shapekey_cache = {shapekey_id:{} for shapekey_id in shapekey_index_list}
-
-        # # 对于每一个obj的每个顶点，都从0到128获取它的形态键对应偏移值
-        # # 获取当前obj每个Index对应的VertexId
-        # mesh = obj.data
-        # for index_id, vertex_id in index_vertex_id_dict.items():
-        #     # 这样VertexId加上全局偏移，就能获取到对应位置的形态键数据：
-        #     vertex_shapekey_data = shapekey_data.get(vertex_id , None)
-        #     if vertex_shapekey_data is not None:
-        #         for shapekey_index,vertex_offsets in vertex_shapekey_data.items():
-        #             shapekey_cache[shapekey_index][index_id] = vertex_offsets
-
-    
-        # LOG.newline()
-        # shapekey_verts_count = 0
-        # # 从0到128去获取ShapeKey的Index，有就直接加到
-        # for group_id in range(128):
-        #     shapekey = shapekey_cache.get(group_id, None)
-        #     if shapekey is None or len(shapekey_cache[group_id]) == 0:
-        #         self.shapekey_offsets.extend([shapekey_verts_count if shapekey_verts_count != 0 else 0])
-        #         continue
-
-        #     self.shapekey_offsets.extend([shapekey_verts_count])
-
-        #     for draw_index, vertex_offsets in shapekey.items():
-        #         self.shapekey_vertex_ids.extend([draw_index])
-        #         self.shapekey_vertex_offsets.extend(vertex_offsets + [0, 0, 0])
-        #         shapekey_verts_count += 1
-
-
-        # (5) 导出Buffer文件，Export Index Buffer files, Category Buffer files. (And Export ShapeKey Buffer Files.(WWMI))
+        # (12) 导出Buffer文件，Export Index Buffer files, Category Buffer files. (And Export ShapeKey Buffer Files.(WWMI))
         # 用于写出IB时使用
         # 拼接每个PartName对应的IB文件的Resource和filename,这样生成ini的时候以及导出Mod的时候就可以直接使用了。
-        self.PartName_IBResourceName_Dict = {}
         style_part_name = "Component1"
         ib_resource_name = "Resource_" + self.draw_ib + "_" + style_part_name
         ib_buf_filename = self.draw_ib + "-" + style_part_name + ".buf"
-        self.PartName_IBResourceName_Dict["1"] = ib_resource_name
 
         # 导出当前Mod的所有Buffer文件
         buf_output_folder = GlobalConfig.path_generatemod_buffer_folder(draw_ib=self.draw_ib)
-        # print("Write Buffer Files::")
-        # Export Index Buffer files.
         packed_data = struct.pack(f'<{len(ib)}I', *ib)
         with open(buf_output_folder + ib_buf_filename, 'wb') as ibf:
             ibf.write(packed_data) 
             
-        # print("Export Category Buffers::")
-        # Export category buffer files.
         for category_name, category_buf in self.__categoryname_bytelist_dict.items():
             buf_path = buf_output_folder + self.draw_ib + "-" + category_name + ".buf"
-            # print("write: " + buf_path)
-            # print(type(category_buf[0]))
              # 将 list 转换为 numpy 数组
             # category_array = numpy.array(category_buf, dtype=numpy.uint8)
             with open(buf_path, 'wb') as ibf:
@@ -299,8 +206,6 @@ class DrawIBModelWWMI:
         if len(self.shapekey_vertex_offsets) != 0:
             # 将列表转换为numpy数组，并改变其数据类型为float16
             float_array = numpy.array(self.shapekey_vertex_offsets, dtype=numpy.float32).astype(numpy.float16)
-            
-            # 以二进制模式写入文件
             with open(buf_output_folder + self.draw_ib + "-" + "ShapeKeyVertexOffset.buf", 'wb') as file:
                 float_array.tofile(file)
 

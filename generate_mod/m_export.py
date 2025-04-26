@@ -52,87 +52,58 @@ class BufferDataConverter:
         return numpy.round(input_array * 255).astype(numpy.uint8)
     
     @classmethod
-    def normalize_weights(cls, weights):
-        '''
-        Normalizes provided list of float weights in an 8-bit friendly way.
-        Returns list of 8-bit integers (0-255) with sum of 255.
+    def convert_4x_float32_to_r8g8b8a8_unorm_blendweights(cls, input_array:numpy.ndarray):
+        TimerUtils.Start("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
 
-        Credit To @SpectrumQT https://github.com/SpectrumQT
-        '''
-        total = sum(weights)
+        # 核心转换流程
+        scaled = input_array * 255.0                  # 缩放至0-255范围
+        rounded = numpy.around(scaled)                 # 四舍五入
+        clamped = numpy.clip(rounded, 0, 255)          # 约束数值范围
+        result = clamped.astype(numpy.uint8)           # 转换为uint8
 
-        if total == 0:
-            return [0] * len(weights)
-
-        precision_error = 255
-        tickets = [0] * len(weights)
-        normalized_weights = [0] * len(weights)
-
-        for idx, weight in enumerate(weights):
-            # Ignore zero weight
-            if weight == 0:
-                continue
-
-            weight = weight / total * 255
-            # Ignore weight below minimal precision (1/255)
-            if weight < 1:
-                normalized_weights[idx] = 0
-                continue
-
-            # Strip float part from the weight
-            int_weight = 0
-
-            int_weight = int(weight)
-
-            normalized_weights[idx] = int_weight
-            # Reduce precision_error by the integer weight value
-            precision_error -= int_weight
-            # Calculate weight 'significance' index to prioritize lower weights with float loss
-            tickets[idx] = 255 / weight * (weight - int_weight)
-
-        while precision_error > 0:
-            ticket = max(tickets)
-            if ticket > 0:
-                # Route `1` from precision_error to weights with non-zero ticket value first
-                i = tickets.index(ticket)
-                tickets[i] = 0
-            else:
-                # Route remaining precision_error to highest weight to reduce its impact
-                i = normalized_weights.index(max(normalized_weights))
-            # Distribute `1` from precision_error
-            normalized_weights[i] += 1
-            precision_error -= 1
-
-        return normalized_weights
-    
-    @classmethod
-    def convert_4x_float32_to_r8g8b8a8_unorm_blendweights(cls, input_array):
-        # print(f"Input shape: {input_array.shape}")  # 输出形状 (1896, 4)
-
-        result = numpy.zeros_like(input_array, dtype=numpy.uint8)
-
-        for i in range(input_array.shape[0]):
-
-            weights = input_array[i]
-
-            # 如果权重含有NaN值，则将该行的所有值设置为0。
-            # 因为权重只要是被刷过，就不会出现NaN值。
-            find_nan = False
-            for w in weights:
-                if math.isnan(w):
-                    row_normalized = [0, 0, 0, 0]
-                    result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
-                    find_nan = True
-                    break
-                    # print(weights)
-                    # raise Fatal("NaN found in weights")
-            
-            if not find_nan:
-                # 对每一行调用 normalize_weights 方法
-                row_normalized = cls.normalize_weights(input_array[i])
-                result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
-
+        TimerUtils.End("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
         return result
+    
+    # @classmethod
+    # def convert_4x_float32_to_r8g8b8a8_unorm_blendweights(cls, input_array):
+    #     # TODO 太慢了，这里要执行216714次normalize_weights方法，
+
+    #     # numpy.around((numpy.fromiter(data, numpy.float32) * 255.0)).astype(numpy.uint8)
+
+
+    #     TimerUtils.Start("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
+    #     # print(f"Input shape: {input_array.shape}")  # 输出形状 (1896, 4)
+
+    #     result = numpy.zeros_like(input_array, dtype=numpy.uint8)
+
+    #     total = 0
+    #     for i in range(input_array.shape[0]):
+
+    #         weights = input_array[i]
+
+    #         # 如果权重含有NaN值，则将该行的所有值设置为0。
+    #         # 因为权重只要是被刷过，就不会出现NaN值。
+    #         find_nan = False
+    #         for w in weights:
+    #             if math.isnan(w):
+    #                 row_normalized = [0, 0, 0, 0]
+    #                 result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
+    #                 find_nan = True
+    #                 break
+    #                 # print(weights)
+    #                 # raise Fatal("NaN found in weights")
+            
+    #         if not find_nan:
+    #             # 对每一行调用 normalize_weights 方法
+    #             row_normalized = cls.normalize_weights(input_array[i])
+    #             result[i] = numpy.array(row_normalized, dtype=numpy.uint8)
+            
+    #         total = total + 1
+
+    #     print("total: " + str(total))
+    #     TimerUtils.End("convert_4x_float32_to_r8g8b8a8_unorm_blendweights")
+
+    #     return result
     
     @classmethod
     def convert_4x_float32_to_r16g16b16a16_unorm(cls, input_array):
@@ -326,7 +297,6 @@ class BufferModel:
         - 注意这里是从mesh.loops中获取数据，而不是从mesh.vertices中获取数据
         - 所以后续使用的时候要用mesh.loop里的索引来进行获取数据
         '''
-        # TimerUtils.Start("Parse MeshData")
 
         mesh_loops = mesh.loops
         mesh_loops_length = len(mesh_loops)
@@ -356,7 +326,6 @@ class BufferModel:
         loop_vertex_indices = numpy.empty(mesh_loops_length, dtype=int)
         mesh_loops.foreach_get("vertex_index", loop_vertex_indices)
 
-        # TimerUtils.Start("GET BLEND") # 0:00:00.141898 
         max_groups = 4
 
         # Extract and sort the top 4 groups by weight for each vertex.
@@ -392,7 +361,6 @@ class BufferModel:
             if blendweights_formatlen > 1:
                 blendweights = blendweights / numpy.sum(blendweights, axis=1)[:, None]
 
-        # TimerUtils.End("GET BLEND")
 
         # 对每一种Element都获取对应的数据
         for d3d11_element_name in self.d3d11GameType.OrderedFullElementList:
@@ -415,6 +383,7 @@ class BufferModel:
                 # TimerUtils.End("Position Get") # 0:00:00.057535 
 
             elif d3d11_element_name == 'NORMAL':
+                TimerUtils.Start("Parse NORMAL")
                 if d3d11_element.Format == 'R16G16B16A16_FLOAT':
                     result = numpy.ones(mesh_loops_length * 4, dtype=numpy.float32)
                     normals = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
@@ -470,9 +439,13 @@ class BufferModel:
                     # 将一维数组 reshape 成 (mesh_loops_length, 3) 形状的二维数组
                     result = result.reshape(-1, 3)
                     self.element_vertex_ndarray[d3d11_element_name] = result
+                TimerUtils.End("Parse NORMAL")
+                
 
 
             elif d3d11_element_name == 'TANGENT':
+                TimerUtils.Start("Parse TANGENT")
+
                 result = numpy.empty(mesh_loops_length * 4, dtype=numpy.float32)
 
                 # 使用 foreach_get 批量获取切线和副切线符号数据
@@ -508,6 +481,9 @@ class BufferModel:
                     result = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm(result)
 
                 self.element_vertex_ndarray[d3d11_element_name] = result
+
+                TimerUtils.End("Parse TANGENT")
+
 
             elif d3d11_element_name.startswith('COLOR'):
                 # TimerUtils.Start("Get COLOR")
@@ -545,6 +521,7 @@ class BufferModel:
                 # TimerUtils.End("GET TEXCOORD")
                         
             elif d3d11_element_name.startswith('BLENDINDICES'):
+                TimerUtils.Start("Parse BLENDINDICES")
                 
                 if d3d11_element.Format == "R32G32B32A32_SINT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices
@@ -562,16 +539,25 @@ class BufferModel:
                     blendindices.astype(numpy.uint8)
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices
                 
+                TimerUtils.End("Parse BLENDINDICES")
+
+                
             elif d3d11_element_name.startswith('BLENDWEIGHT'):
+                TimerUtils.Start("Parse BLENDWEIGHT")
+
                 # patch时跳过生成数据
                 if d3d11_element.Format == "R32G32B32A32_FLOAT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendweights
                 elif d3d11_element.Format == "R32G32_FLOAT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendweights[:, :2]
                 elif d3d11_element.Format == 'R8G8B8A8_SNORM':
+                    print("BLENDWEIGHT R8G8B8A8_SNORM")
                     self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_snorm(blendweights)
                 elif d3d11_element.Format == 'R8G8B8A8_UNORM':
+                    print("BLENDWEIGHT R8G8B8A8_UNORM")
                     self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm_blendweights(blendweights)
+                TimerUtils.End("Parse BLENDWEIGHT")
+                
 
     def calc_index_vertex_buffer(self,obj,mesh:bpy.types.Mesh):
         '''
