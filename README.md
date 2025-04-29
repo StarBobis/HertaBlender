@@ -20,11 +20,6 @@ Herta-Blender安装教程
 - 极快的模型导入和Mod生成速度。
 - 一键更新与定期自动检查新版本。
 
-# 支持项目开发
-
-<a href="https://afdian.com/a/NicoMico666" target="_blank">
-  <img src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" width="150">
-</a>
 
 # 相似项目
 

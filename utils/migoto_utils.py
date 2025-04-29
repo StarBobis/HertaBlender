@@ -2,8 +2,6 @@ import re
 import numpy
 import struct
 
-from glob import glob
-
 
 # This used to catch any exception in run time and raise it to blender output console.
 class Fatal(Exception):

@@ -65,7 +65,9 @@ class BufferDataConverter:
             return [0] * len(weights)
 
         precision_error = 255
+
         tickets = [0] * len(weights)
+        
         normalized_weights = [0] * len(weights)
 
         for idx, weight in enumerate(weights):
@@ -108,6 +110,9 @@ class BufferDataConverter:
     @classmethod
     def convert_4x_float32_to_r8g8b8a8_unorm_blendweights(cls, input_array):
         # print(f"Input shape: {input_array.shape}")  # 输出形状 (1896, 4)
+
+        # TODO 速度很慢，但是numpy自带的方法无法解决权重炸毛的问题，暂时还必须这样
+        # 这里每个顶点都要进行这个操作，总共执行21万次，平均执行4秒，呵呵呵
 
         result = numpy.zeros_like(input_array, dtype=numpy.uint8)
 
