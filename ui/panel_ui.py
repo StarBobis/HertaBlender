@@ -167,8 +167,11 @@ class PanelButtons(bpy.types.Panel):
 
         layout.operator("dbmt.import_all_from_workspace",icon='IMPORT')
 
-        if GlobalConfig.gamename == "HSR" or GlobalConfig.gamename == "AILIMIT":
+        if GlobalConfig.gamename == "HSR" :
             layout.operator("dbmt.export_mod_hsr_32",text="生成XXMI格式Mod",icon='EXPORT')
+        elif GlobalConfig.gamename == "AILIMIT":
+            layout.operator("dbmt.export_mod_hsr_32",text="生成HSR加载器格式Mod",icon='EXPORT')
+            layout.operator("dbmt.export_unity_cs_mod_to_workspace_seperated",text="生成DBMT自带加载器格式Mod",icon='EXPORT')
         elif GlobalConfig.gamename == "WWMI":
             layout.operator("herta.export_mod_wwmi",text="生成Mod",icon='EXPORT')
         else:

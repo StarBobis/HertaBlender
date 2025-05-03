@@ -1,7 +1,8 @@
 from ..utils.shapekey_utils import *
 from ..utils.obj_utils import SmoothNormal,ObjUtils
 import bmesh
-from mathutils import Vector
+from mathutils import Vector,Matrix
+import random
 
 from bpy.props import BoolProperty,  CollectionProperty
 
@@ -212,6 +213,7 @@ def create_armature_from_vertex_groups(bone_length=0.1):
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
+
 class AddBoneFromVertexGroupV2(bpy.types.Operator):
     bl_idname = "object.add_bone_from_vertex_group_v2"
     bl_label = "根据顶点组生成基础骨骼"
@@ -411,6 +413,9 @@ class SmoothNormalSaveToUV(bpy.types.Operator):
         SmoothNormal.smooth_normal_save_to_uv()
         return {'FINISHED'}
  
+
+
+    
  
 class CatterRightClickMenu(bpy.types.Menu):
     bl_idname = "VIEW3D_MT_object_3Dmigoto"
