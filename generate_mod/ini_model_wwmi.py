@@ -1,19 +1,19 @@
 import shutil
 
 from .m_ini_builder import *
-from .m_drawib_model import *
+from .m_drawib_model_wwmi import DrawIBModelWWMI
+from ..config.main_config import GlobalConfig
 from .m_ini_helper import M_IniHelper
 from ..properties.properties_wwmi import Properties_WWMI
+from ..properties.properties_generate_mod import Properties_GenerateMod
+from ..utils.collection_utils import ModelCollection
 
 
-
-class M_UnrealIniModel:
+class M_WWMIIniModel:
     '''
-    Unreal Engine VertexShader PreSkinning
-    Unreal Engine ComputeShader PreSkinning
-    Unreal Engine CPU PreSkinning
+    WWMI专用
     '''
-    drawib_drawibmodel_dict:dict[str,DrawIBModel] = {}
+    drawib_drawibmodel_dict:dict[str,DrawIBModelWWMI] = {}
     shapekeys = {}
 
     global_key_index_constants = 0
@@ -41,7 +41,7 @@ class M_UnrealIniModel:
 
 
     @classmethod
-    def add_constants_section(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_constants_section(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         constants_section = M_IniSection(M_SectionType.Constants)
         constants_section.append("[Constants]")
         constants_section.append("global $required_wwmi_version = 0.70")
@@ -71,7 +71,7 @@ class M_UnrealIniModel:
         ini_builder.append_section(constants_section)
     
     @classmethod
-    def add_present_section(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_present_section(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         present_section = M_IniSection(M_SectionType.Present)
         present_section.append("[Present]")
 
@@ -94,7 +94,7 @@ class M_UnrealIniModel:
         ini_builder.append_section(present_section)
 
     @classmethod
-    def add_commandlist_section(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_commandlist_section(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         commandlist_section = M_IniSection(M_SectionType.CommandList)
 
         # CommandListRegisterMod
@@ -214,7 +214,7 @@ class M_UnrealIniModel:
         ini_builder.append_section(commandlist_section)
 
     @classmethod
-    def add_resource_mod_info_section_default(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_resource_mod_info_section_default(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         '''
         这里第一个版本我们暂时不提供可以指定Mod信息的功能，所以全部都用的是默认的值
         TODO 这个可以放入M_IniHelper中
@@ -249,7 +249,7 @@ class M_UnrealIniModel:
 
 
     @classmethod
-    def add_texture_override_mark_bone_data_cb(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_texture_override_mark_bone_data_cb(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         '''
         给VS-CB4的Hash值做一个filter_index标记
         '''
@@ -264,16 +264,74 @@ class M_UnrealIniModel:
         ini_builder.append_section(texture_override_mark_bonedatacb_section)
 
     @classmethod
-    def add_texture_override_component(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def get_switchkey_drawindexed_list(cls,model_collection_list:list[ModelCollection],draw_ib_model:DrawIBModelWWMI,vlr_filter_index_indent:str,input_global_key_index_logic:int):
         '''
-        TODO 这里我们先考虑MergedSkeleton的情况，因为这个最常用，后面再写分开的VGS的情况
-        
+        生成按键开关集合喝按键切换集合的DrawIndexed以及对应注释
+        是Catter集合架构的通用方法
+        返回一个字符串列表和global_key_index_logic
+        字符串列表需要放到对应的ini_section中，global_key_index_logic需要赋值给全局的对应变量
         '''
-        
-        texture_override_component = M_IniSection(M_SectionType.TextureOverrideIB)
+        drawindexed_list = []
+        global_key_index_logic = input_global_key_index_logic
 
-        for component_name in draw_ib_model.componentname_ibbuf_dict.keys():
-            component_count = int(component_name[-1]) - 1
+        toggle_type_number = 0
+        toggle_model_collection_list:list[ModelCollection] = []
+        switch_model_collection_list:list[ModelCollection] = []
+
+        for toggle_model_collection in model_collection_list:
+            if toggle_model_collection.type == "toggle":
+                toggle_type_number = toggle_type_number + 1
+                toggle_model_collection_list.append(toggle_model_collection)
+            elif toggle_model_collection.type == "switch":
+                switch_model_collection_list.append(toggle_model_collection)
+
+        # 输出按键切换的DrawIndexed
+        if toggle_type_number >= 2:
+            for toggle_count in range(toggle_type_number):
+                if toggle_count == 0:
+                    drawindexed_list.append(vlr_filter_index_indent + "if $swapkey" + str(global_key_index_logic) + " == " + str(toggle_count))
+                else:
+                    drawindexed_list.append(vlr_filter_index_indent + "else if $swapkey" + str(global_key_index_logic) + " == " + str(toggle_count))
+
+                toggle_model_collection = toggle_model_collection_list[toggle_count]
+                for obj_name in toggle_model_collection.obj_name_list:
+                    m_drawindexed = draw_ib_model.obj_name_drawindexed_dict[obj_name]
+                    drawindexed_list.append(vlr_filter_index_indent + "; " + m_drawindexed.AliasName)
+                    drawindexed_list.append(vlr_filter_index_indent  + m_drawindexed.get_draw_str())
+
+            drawindexed_list.append("endif")
+            drawindexed_list.append("\n")
+
+            global_key_index_logic = global_key_index_logic + 1
+        elif toggle_type_number != 0:
+            for toggle_model_collection in toggle_model_collection_list:
+                for obj_name in toggle_model_collection.obj_name_list:
+                    m_drawindexed = draw_ib_model.obj_name_drawindexed_dict[obj_name]
+                    drawindexed_list.append(vlr_filter_index_indent + "; " + m_drawindexed.AliasName)
+                    drawindexed_list.append(vlr_filter_index_indent + m_drawindexed.get_draw_str())
+                    drawindexed_list.append("\n")
+
+        # 输出按键开关的DrawIndexed
+        for switch_model_collection in switch_model_collection_list:
+            drawindexed_list.append(vlr_filter_index_indent + "if $swapkey" + str(global_key_index_logic) + "  == 1")
+            for obj_name in switch_model_collection.obj_name_list:
+                m_drawindexed = draw_ib_model.obj_name_drawindexed_dict[obj_name]
+                drawindexed_list.append(vlr_filter_index_indent + "; " + m_drawindexed.AliasName)
+                drawindexed_list.append(vlr_filter_index_indent  + m_drawindexed.get_draw_str())
+                drawindexed_list.append("\n")
+            drawindexed_list.append(vlr_filter_index_indent + "endif")
+            drawindexed_list.append("\n")
+            global_key_index_logic = global_key_index_logic + 1
+        
+        return drawindexed_list, global_key_index_logic
+
+
+    @classmethod
+    def add_texture_override_component(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
+        texture_override_component = M_IniSection(M_SectionType.TextureOverrideIB)
+        component_count = 0
+        for merged_object_component in draw_ib_model.merged_object.components:
+            component_name = "Component " + str(component_count + 1)
             component_count_str = str(component_count)
             component_object = draw_ib_model.extracted_object.components[component_count]
             # print(str(component_count))
@@ -294,13 +352,13 @@ class M_UnrealIniModel:
                 texture_override_component.append("    " + "$\\WWMIv1\\vg_count = " + str(component_object.vg_count))
                 texture_override_component.append("    " + "run = CommandListMergeSkeleton")
                 texture_override_component.append("  endif")
-                # TODO 有空的话，搞清楚这里为啥用!==
+
                 texture_override_component.append("  " + "if ResourceMergedSkeleton !== null")
                 texture_override_component.append("    " + "handling = skip")
 
                 # 必须先判定这里是否有DrawIndexed才能去进行绘制以及调用CommandList
                 model_collection_list = draw_ib_model.componentname_modelcollection_list_dict[component_name]
-                drawindexed_list, added_global_key_index_logic = M_IniHelper.get_switchkey_drawindexed_list(model_collection_list=model_collection_list, draw_ib_model=draw_ib_model,vlr_filter_index_indent="",input_global_key_index_logic=cls.global_key_index_logic)
+                drawindexed_list, added_global_key_index_logic = cls.get_switchkey_drawindexed_list(model_collection_list=model_collection_list, draw_ib_model=draw_ib_model,vlr_filter_index_indent="",input_global_key_index_logic=cls.global_key_index_logic)
                 
                 if len(drawindexed_list) != 0:
                     texture_override_component.append("    " + "run = CommandListTriggerResourceOverrides")
@@ -317,7 +375,7 @@ class M_UnrealIniModel:
 
                 # 必须先判定这里是否有DrawIndexed才能去进行绘制以及调用CommandList
                 model_collection_list = draw_ib_model.componentname_modelcollection_list_dict[component_name]
-                drawindexed_list, added_global_key_index_logic = M_IniHelper.get_switchkey_drawindexed_list(model_collection_list=model_collection_list, draw_ib_model=draw_ib_model,vlr_filter_index_indent="",input_global_key_index_logic=cls.global_key_index_logic)
+                drawindexed_list, added_global_key_index_logic = cls.get_switchkey_drawindexed_list(model_collection_list=model_collection_list, draw_ib_model=draw_ib_model,vlr_filter_index_indent="",input_global_key_index_logic=cls.global_key_index_logic)
                 if len(drawindexed_list) != 0:
                     texture_override_component.append("  " + "handling = skip")
                     texture_override_component.append("  " + "run = CommandListTriggerResourceOverrides")
@@ -333,10 +391,12 @@ class M_UnrealIniModel:
             texture_override_component.append("endif")
             texture_override_component.new_line()
 
+            component_count = component_count + 1
+
         ini_builder.append_section(texture_override_component)
     
     @classmethod
-    def add_texture_override_shapekeys(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_texture_override_shapekeys(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         texture_override_shapekeys_section = M_IniSection(M_SectionType.TextureOverrideShapeKeys)
 
         shapekey_offsets_hash = draw_ib_model.extracted_object.shapekeys.offsets_hash
@@ -396,7 +456,7 @@ class M_UnrealIniModel:
         ini_builder.append_section(texture_override_shapekeys_section)
 
     @classmethod
-    def add_resource_shapekeys(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_resource_shapekeys(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         resource_shapekeys_section = M_IniSection(M_SectionType.ResourceShapeKeysOverride)
 
         # TODO 这些array后面的值可能是动态计算得到的
@@ -413,7 +473,7 @@ class M_UnrealIniModel:
         ini_builder.append_section(resource_shapekeys_section)
 
     @classmethod
-    def add_resource_merged_skeleton(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_resource_merged_skeleton(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         resource_skeleton_section = M_IniSection(M_SectionType.ResourceSkeletonOverride)
 
         # TODO 这些array后面的值可能是动态计算得到的
@@ -437,7 +497,7 @@ class M_UnrealIniModel:
         ini_builder.append_section(resource_skeleton_section)
 
     @classmethod
-    def add_resource_buffer(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModel):
+    def add_resource_buffer(cls,ini_builder:M_IniBuilder,draw_ib_model:DrawIBModelWWMI):
         resource_buffer_section = M_IniSection(M_SectionType.ResourceBuffer)
 
         # IndexBuffer
@@ -492,6 +552,7 @@ class M_UnrealIniModel:
         resource_buffer_section.new_line()
 
         ini_builder.append_section(resource_buffer_section)
+
 
     @classmethod
     def generate_unreal_vs_config_ini(cls):

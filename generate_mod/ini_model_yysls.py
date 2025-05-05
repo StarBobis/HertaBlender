@@ -8,7 +8,7 @@ from .m_ini_helper import M_IniHelper
 from ..properties.properties_generate_mod import Properties_GenerateMod
 
 
-class M_UnityIniModel:
+class M_YYSLS_IniModel:
     drawib_drawibmodel_dict:dict[str,DrawIBModel] = {}
 
     # 代表全局声明了几个Key
@@ -30,7 +30,7 @@ class M_UnityIniModel:
     @classmethod
     def initialzie(cls):
         '''
-        You have to call this to clean cache data before generate mod.
+        生成Mod前必须调用这个清除缓存
         '''
         cls.drawib_drawibmodel_dict = {}
         
@@ -552,12 +552,8 @@ class M_UnityIniModel:
     def generate_unity_vs_config_ini(cls):
         '''
         Supported Games:
-        - Genshin Impact
-        - Honkai Impact 3rd
-        - Honkai StarRail
-        - Zenless Zone Zero
-        - Bloody Spell
-        - Unity-CPU-PreSkinning (All DX11 Unity games who allow 3Dmigoto inject, mostly used by GF2 now.)
+        - YYSLS
+        - TODO 死或生：沙滩排球
         '''
         config_ini_builder = M_IniBuilder()
 

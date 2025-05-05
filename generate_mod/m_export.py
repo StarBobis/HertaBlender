@@ -524,8 +524,8 @@ class BufferModel:
 
                 self.element_vertex_ndarray[d3d11_element_name] = result
 
-
-
+            # TODO YYSLS需要BINORMAL导出，前提是先把这些代码差分简化，因为YYSLS的TANGENT和NORMAL的.w都是固定的1
+            
             elif d3d11_element_name.startswith('COLOR'):
                 # TimerUtils.Start("Get COLOR")
 
@@ -560,6 +560,7 @@ class BufferModel:
 
                         self.element_vertex_ndarray[d3d11_element_name] = uvs_array 
                 # TimerUtils.End("GET TEXCOORD")
+            
                         
             elif d3d11_element_name.startswith('BLENDINDICES'):
                 if d3d11_element.Format == "R32G32B32A32_SINT":

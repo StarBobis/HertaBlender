@@ -3,7 +3,7 @@ import os
 
 from ..utils.migoto_utils import *
 from ..config.main_config import * 
-from ..generate_mod.m_export_mod import *
+from .generate_mod_ui import *
 
 from ..properties.properties_dbmt_path import Properties_DBMT_Path
 
@@ -172,6 +172,8 @@ class PanelButtons(bpy.types.Panel):
         elif GlobalConfig.gamename == "AILIMIT":
             layout.operator("dbmt.export_mod_hsr_32",text="生成HSR加载器格式Mod",icon='EXPORT')
             layout.operator("dbmt.export_unity_cs_mod_to_workspace_seperated",text="生成DBMT自带加载器格式Mod",icon='EXPORT')
+        elif GlobalConfig.gamename == "YYSLS":
+            layout.operator("dbmt.generate_mod_yysls",text="生成Mod",icon='EXPORT')
         elif GlobalConfig.gamename == "WWMI":
             layout.operator("herta.export_mod_wwmi",text="生成Mod",icon='EXPORT')
         else:
