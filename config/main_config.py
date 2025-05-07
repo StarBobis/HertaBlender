@@ -25,7 +25,7 @@ class GlobalConfig:
         if cls.gamename in ["GI","HI3","ZZZ","BloodySpell","GF2","IdentityV"]:
             return GameCategory.UnityVS
         
-        elif cls.gamename in ["Game001","HSR","AILIMIT"]:
+        elif cls.gamename in ["Game001","AILIMIT"]:
             return GameCategory.UnityCS
         
         elif cls.gamename in ["Game002","WWMI"]:
