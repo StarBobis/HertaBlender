@@ -46,7 +46,7 @@ https://github.com/BlackStartx/PyCharm-Blender-Plugin
 
 bl_info = {
     "name": "Herta",
-    "description": "A simple blender plugin for generate 3Dmigoto mod.",
+    "description": "A blender plugin for generate 3Dmigoto mod.",
     "blender": (3, 6, 0),
     "version": (1, 1, 6),
     "location": "View3D",

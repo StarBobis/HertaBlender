@@ -11,7 +11,7 @@ from ..properties.properties_dbmt_path import Properties_DBMT_Path
 # 用于选择DBMT所在文件夹，主要是这里能自定义逻辑从而实现保存DBMT路径，这样下次打开就还能读取到。
 class OBJECT_OT_select_dbmt_folder(bpy.types.Operator):
     bl_idname = "object.select_dbmt_folder"
-    bl_label = "选择DBMT所在文件夹"
+    bl_label = "选择DBMT工作文件夹"
 
     directory: bpy.props.StringProperty(
         subtype='DIR_PATH',
@@ -142,7 +142,7 @@ class PanelButtons(bpy.types.Panel):
         layout = self.layout
 
         # use_sepecified_dbmt
-        layout.prop(context.scene.dbmt_path, "use_specified_dbmt",text="使用指定的DBMT路径")
+        layout.prop(context.scene.dbmt_path, "use_specified_dbmt",text="使用指定的DBMT工作路径")
 
         if Properties_DBMT_Path.use_specified_dbmt():
             # Path button to choose DBMT-GUI.exe location folder.
@@ -156,7 +156,7 @@ class PanelButtons(bpy.types.Panel):
         
         GlobalConfig.read_from_main_json()
 
-        layout.label(text="DBMT路径: " + GlobalConfig.dbmtlocation)
+        layout.label(text="DBMT工作路径: " + GlobalConfig.dbmtlocation)
         # print(MainConfig.dbmtlocation)
 
         layout.label(text="当前游戏: " + GlobalConfig.gamename)
