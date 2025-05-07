@@ -172,7 +172,7 @@ class PanelButtons(bpy.types.Panel):
         elif GlobalConfig.gamename == "AILIMIT":
             layout.operator("dbmt.export_mod_hsr_32",text="生成HSR加载器格式Mod",icon='EXPORT')
             layout.operator("dbmt.export_unity_cs_mod_to_workspace_seperated",text="生成DBMT自带加载器格式Mod",icon='EXPORT')
-        elif GlobalConfig.gamename == "YYSLS":
+        elif GlobalConfig.gamename == "YYSLS" or GlobalConfig.gamename == "IdentityV":
             layout.operator("dbmt.generate_mod_yysls",text="生成Mod",icon='EXPORT')
         elif GlobalConfig.gamename == "WWMI":
             layout.operator("herta.export_mod_wwmi",text="生成Mod",icon='EXPORT')
@@ -188,3 +188,14 @@ class PanelButtons(bpy.types.Panel):
             else:
                 layout.label(text= "Generate Mod for " + GlobalConfig.gamename + " Not Supported Yet.")
 
+
+class PanelModelProcess(bpy.types.Panel):
+    bl_label = "模型处理面板" 
+    bl_idname = "VIEW3D_PT_Herta_ModelProcess_Panel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'Herta'
+    
+
+    def draw(self, context):
+        layout = self.layout

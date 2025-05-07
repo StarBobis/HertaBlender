@@ -104,6 +104,8 @@ class DrawIBModel:
         if GlobalConfig.get_game_category() == GameCategory.UnrealVS or GlobalConfig.get_game_category() == GameCategory.UnrealCS: 
             # UnrealVS目前只能一个IB
             self.__read_component_ib_buf_dict_merged()
+        elif GlobalConfig.gamename == "IdentityV":
+            self.__read_component_ib_buf_dict_merged()
         else:
             self.__read_component_ib_buf_dict_seperated_single()
             
@@ -345,6 +347,7 @@ class DrawIBModel:
         每个Component都有一个单独的IB文件。
         所以每个Component都有135W上限。
         '''
+        print("Read Component IB Buffer Dict Seperated Single")
         vertex_number_ib_offset = 0
         total_offset = 0
         for component_name, moel_collection_list in self.componentname_modelcollection_list_dict.items():

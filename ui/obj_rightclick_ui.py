@@ -225,7 +225,7 @@ class AddBoneFromVertexGroupV2(bpy.types.Operator):
 
 class RenameAmatureFromGame(bpy.types.Operator):
     bl_idname = "object.rename_amature_from_game"
-    bl_label = "重命名选中Amature的骨骼名称"
+    bl_label = "重命名选中Amature的骨骼名称(GI)(测试)"
     bl_description = "用于把游戏里解包出来的骨骼重命名，方便我们直接一键绑定到提取出的Mod模型上，Credit to Leotorrez"
     def execute(self, context):
         # Copied from https://github.com/zeroruka/GI-Bones 
@@ -460,7 +460,6 @@ class SmoothNormalSaveToUV(bpy.types.Operator):
         SmoothNormal.smooth_normal_save_to_uv()
         return {'FINISHED'}
  
-
 
     
  

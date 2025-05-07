@@ -8,7 +8,13 @@ from .m_ini_helper import M_IniHelper
 from ..properties.properties_generate_mod import Properties_GenerateMod
 
 
-class M_YYSLS_IniModel:
+class M_CTX_IniModel:
+    '''
+    支持的游戏：
+    - 燕云十六声
+    - 死或生：沙滩排球
+    - 第五人格
+    '''
     drawib_drawibmodel_dict:dict[str,DrawIBModel] = {}
 
     # 代表全局声明了几个Key
@@ -30,7 +36,7 @@ class M_YYSLS_IniModel:
     @classmethod
     def initialzie(cls):
         '''
-        生成Mod前必须调用这个清除缓存
+        You have to call this to clean cache data before generate mod.
         '''
         cls.drawib_drawibmodel_dict = {}
         
@@ -85,9 +91,9 @@ class M_YYSLS_IniModel:
                     texture_override_vb_section.append(filterindex_indent_prefix + drawtype_indent_prefix + category_original_slot + " = Resource" + draw_ib + original_category_name)
 
             # draw一般都是在Blend槽位上进行的，所以我们这里要判断确定是Blend要替换的hash才能进行draw。
-            if category_name == d3d11GameType.CategoryDrawCategoryDict["Blend"]:
-                texture_override_vb_section.append(drawtype_indent_prefix + "handling = skip")
-                texture_override_vb_section.append(drawtype_indent_prefix + "draw = " + str(draw_ib_model.draw_number) + ", 0")
+
+            texture_override_vb_section.append(drawtype_indent_prefix + "handling = skip")
+            texture_override_vb_section.append(drawtype_indent_prefix + "draw = " + str(draw_ib_model.draw_number) + ", 0")
 
             if Properties_GenerateMod.position_override_filter_draw_type():
                 # 对应if DRAW_TYPE == 1的结束
@@ -154,6 +160,15 @@ class M_YYSLS_IniModel:
 
             # Add ib replace
             texture_override_ib_section.append(cls.vlr_filter_index_indent + "ib = " + ib_resource_name)
+
+            # vb 替换
+            for category_name in d3d11GameType.OrderedCategoryNameList:
+                
+                # 遍历获取所有在当前分类hash下进行替换的分类，并添加对应的资源替换
+                for original_category_name, draw_category_name in d3d11GameType.CategoryDrawCategoryDict.items():
+                    if category_name == draw_category_name:
+                        category_original_slot = d3d11GameType.CategoryExtractSlotDict[original_category_name]
+                        texture_override_ib_section.append(cls.vlr_filter_index_indent  + category_original_slot + " = Resource" + draw_ib + original_category_name)
 
             # Add slot style texture slot replace.
             if not Properties_GenerateMod.forbid_auto_texture_ini():
@@ -552,8 +567,12 @@ class M_YYSLS_IniModel:
     def generate_unity_vs_config_ini(cls):
         '''
         Supported Games:
-        - YYSLS
-        - TODO 死或生：沙滩排球
+        - Genshin Impact
+        - Honkai Impact 3rd
+        - Honkai StarRail
+        - Zenless Zone Zero
+        - Bloody Spell
+        - Unity-CPU-PreSkinning (All DX11 Unity games who allow 3Dmigoto inject, mostly used by GF2 now.)
         '''
         config_ini_builder = M_IniBuilder()
 
@@ -572,7 +591,7 @@ class M_YYSLS_IniModel:
             cls.global_key_index_constants = global_key_index_counstants_added
 
             cls.add_unity_vs_texture_override_vlr_section(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
-            cls.add_unity_vs_texture_override_vb_sections(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
+            # cls.add_unity_vs_texture_override_vb_sections(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_unity_vs_texture_override_ib_sections(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_unity_vs_resource_vb_sections(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_resource_texture_sections(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)

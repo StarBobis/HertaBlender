@@ -521,6 +521,15 @@ class BufferModel:
 
                 elif d3d11_element.Format == 'R8G8B8A8_UNORM':
                     result = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm(result)
+                
+                elif d3d11_element.Format == "R32G32B32_FLOAT":
+                    result = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
+
+                    result[0::3] = tangents[0::3]  # x 分量
+                    result[1::3] = tangents[1::3]  # y 分量
+                    result[2::3] = tangents[2::3]  # z 分量
+
+                    result = result.reshape(-1, 3)
 
                 self.element_vertex_ndarray[d3d11_element_name] = result
 
@@ -564,6 +573,8 @@ class BufferModel:
                         
             elif d3d11_element_name.startswith('BLENDINDICES'):
                 if d3d11_element.Format == "R32G32B32A32_SINT":
+                    self.element_vertex_ndarray[d3d11_element_name] = blendindices
+                elif d3d11_element.Format == "R16G16B16A16_UINT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices
                 elif d3d11_element.Format == "R32G32B32A32_UINT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices

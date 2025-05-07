@@ -319,7 +319,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             blend_weights[tmpi] = new_dict
             tmpi = tmpi + 1
 
-
+    print("导入UV")
     import_uv_layers(mesh, obj, texcoords)
 
     #  metadata.json, if contains then we can import merged vgmap.
@@ -335,8 +335,10 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
                 partname_count = int(fmt_filename.split("-")[1]) - 1
                 # print("import partname count: " + str(partname_count))
                 component = extracted_object.components[partname_count]
+    print("导入顶点组")
 
     import_vertex_groups(mesh, obj, blend_indices, blend_weights, component)
+    print("导入形态键")
 
     import_shapekeys(mesh, obj, shapekeys)
 

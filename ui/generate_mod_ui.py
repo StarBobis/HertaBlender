@@ -6,7 +6,7 @@ from ..generate_mod.m_drawib_model_wwmi import DrawIBModelWWMI
 from ..generate_mod.ini_model_unity import *
 from ..generate_mod.ini_model_hsr import M_HSRIniModel
 from ..generate_mod.ini_model_wwmi import M_WWMIIniModel
-from ..generate_mod.ini_model_yysls import M_YYSLS_IniModel
+from ..generate_mod.ini_model_ctx import M_CTX_IniModel
 
 class DBMTExportUnityVSModToWorkSpaceSeperated(bpy.types.Operator):
     bl_idname = "dbmt.export_unity_vs_mod_to_workspace_seperated"
@@ -168,7 +168,7 @@ class GenerateModYYSLS(bpy.types.Operator):
     def execute(self, context):
         TimerUtils.Start("GenerateMod YYSLS")
 
-        M_YYSLS_IniModel.initialzie()
+        M_CTX_IniModel.initialzie()
 
         workspace_collection = bpy.context.collection
 
@@ -186,10 +186,10 @@ class GenerateModYYSLS(bpy.types.Operator):
             draw_ib_alias_name = CollectionUtils.get_clean_collection_name(draw_ib_collection.name)
             draw_ib = draw_ib_alias_name.split("_")[0]
             draw_ib_model = DrawIBModel(draw_ib_collection,False)
-            M_YYSLS_IniModel.drawib_drawibmodel_dict[draw_ib] = draw_ib_model
+            M_CTX_IniModel.drawib_drawibmodel_dict[draw_ib] = draw_ib_model
 
         # ModModel填充完毕后，开始输出Mod
-        M_YYSLS_IniModel.generate_unity_cs_config_ini()
+        M_CTX_IniModel.generate_unity_vs_config_ini()
 
         self.report({'INFO'},"生成 YYSLS Mod完成")
 
