@@ -788,6 +788,18 @@ class ObjUtils:
             raise ValueError('index_count mismatch between merged object and its components')
         
         return merged_object
+    
+    @classmethod
+    def reset_obj_rotation(cls,obj):
+        if obj.type == "MESH":
+            # 将旋转角度归零
+            obj.rotation_euler[0] = 0.0  # X轴
+            obj.rotation_euler[1] = 0.0  # Y轴
+            obj.rotation_euler[2] = 0.0  # Z轴
+
+            # 应用旋转变换
+            # bpy.context.view_layer.objects.active = obj
+            # bpy.ops.object.transform_apply(rotation=True)
 
 
 class SmoothNormal:

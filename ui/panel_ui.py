@@ -128,7 +128,8 @@ class PanelGenerateModConfig(bpy.types.Panel):
             layout.prop(context.scene.properties_wwmi, "ignore_muted_shape_keys")
             layout.prop(context.scene.properties_wwmi, "apply_all_modifiers")
 
-            
+
+    
 
 class PanelButtons(bpy.types.Panel):
     bl_label = "Herta基础面板" 

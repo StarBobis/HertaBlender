@@ -105,14 +105,13 @@ register_classes = (
     GenerateModWWMI,
     GenerateModYYSLS,
 
-    # 右键菜单栏
+    # 模型处理面板
     RemoveAllVertexGroupOperator,
     RemoveUnusedVertexGroupOperator,
     MergeVertexGroupsWithSameNumber,
     FillVertexGroupGaps,
     AddBoneFromVertexGroupV2,
     RemoveNotNumberVertexGroup,
-    MMTDeleteLoose,
     MMTResetRotation,
     CatterRightClickMenu,
     SplitMeshByCommonVertexGroup,
@@ -121,8 +120,6 @@ register_classes = (
     WWMI_ApplyModifierForObjectWithShapeKeysOperator,
     SmoothNormalSaveToUV,
     RenameAmatureFromGame,
-
-    # 模型处理面板
     ModelSplitByLoosePart,
     ModelSplitByVertexGroup,
     ModelDeleteLoosePoint,
