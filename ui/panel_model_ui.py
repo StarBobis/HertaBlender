@@ -198,7 +198,7 @@ class PanelModelProcess(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        # layout.operator("panel_model.split_by_loose_part")
+        layout.operator("panel_model.split_by_loose_part")
         # layout.operator("panel_model.merge_by_same_vertex_group")
         layout.operator("panel_model.split_by_vertex_group")
 
