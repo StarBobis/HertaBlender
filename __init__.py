@@ -4,6 +4,7 @@ from . import addon_updater_ops
 
 # UI界面
 from .ui.panel_ui import * 
+from .ui.panel_model_ui import *
 from .ui.collection_rightclick_ui import *
 from .ui.obj_rightclick_ui import *
 
@@ -48,7 +49,7 @@ bl_info = {
     "name": "Herta",
     "description": "A blender plugin for generate 3Dmigoto mod.",
     "blender": (3, 6, 0),
-    "version": (1, 1, 7),
+    "version": (1, 1, 8),
     "location": "View3D",
     "category": "Generic",
     "tracker_url":"https://github.com/StarBobis/Herta"
@@ -121,6 +122,11 @@ register_classes = (
     SmoothNormalSaveToUV,
     RenameAmatureFromGame,
 
+    # 模型处理面板
+    ModelSplitByLoosePart,
+    ModelMergeBySameVertexGroup,
+    ModelSplitByVertexGroup,
+
     # 集合的右键菜单栏
     Catter_MarkCollection_Switch,
     Catter_MarkCollection_Toggle,
@@ -131,6 +137,7 @@ register_classes = (
     PanelGenerateModConfig,
     PanelButtons,
     UpdaterPanel,
+    PanelModelProcess,
 )
 
 

@@ -10,7 +10,21 @@ class ModelCollection:
 
 
 class CollectionUtils:
+    @classmethod
+    def get_collection_by_name(cls,collection_name:str):
+        """
+        根据集合名称获取集合对象。
 
+        :param collection_name: 要获取的集合名称
+        :return: 返回找到的集合对象，如果未找到则返回 None
+        """
+        # 尝试从 bpy.data.collections 获取指定名称的集合
+        if collection_name in bpy.data.collections:
+            return bpy.data.collections[collection_name]
+        else:
+            print(f"未找到名称为 '{collection_name}' 的集合")
+            return None
+    
     # Recursive select every object in a collection and it's sub collections.
     @classmethod
     def select_collection_objects(cls,collection):

@@ -476,6 +476,75 @@ class OpenObject:
 class ObjUtils:
 
     @classmethod
+    def split_obj_by_loose_parts_to_collection(cls,obj,collection_name:str):
+        
+        new_collection = bpy.data.collections.new(collection_name)
+        bpy.context.scene.collection.children.link(new_collection)
+
+        # 复制原对象并链接到新的集合
+        obj_copy = obj.copy()
+        obj_copy.data = obj.data.copy()
+        new_collection.objects.link(obj_copy)
+        
+        # 取消原对象的选择状态
+        obj.select_set(False)
+        
+        # 设置活动对象为副本，并进入编辑模式
+        bpy.context.view_layer.objects.active = obj_copy
+        obj_copy.select_set(True)  # 确保副本被选中
+        bpy.ops.object.mode_set(mode='EDIT')
+        
+        # 分离松散部分
+        bpy.ops.mesh.separate(type='LOOSE')
+        
+        # 返回到对象模式
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        # 清理：取消副本的选择状态，以防影响后续操作
+        obj_copy.select_set(False)
+
+    @classmethod
+    def merge_objects(cls,obj_list, target_collection=None):
+        """
+        合并给定的对象列表。
+        
+        :param obj_list: 要合并的对象列表
+        :param target_collection: 目标集合，如果为None，则使用当前场景的活动集合
+        """
+        # 确保至少有一个对象可以进行合并
+        if len(obj_list) < 1:
+            print("没有足够的对象进行合并")
+            return
+        
+        # 如果目标集合未指定，则使用当前场景的默认集合
+        if target_collection is None:
+            target_collection = bpy.context.collection
+        
+        # Deselect all objects
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # Select and make one of the objects in the list active
+        for obj in obj_list:
+            obj.select_set(True)
+            if obj.name in bpy.context.view_layer.objects:
+                bpy.context.view_layer.objects.active = obj
+        
+        # Ensure the active object is set to one of the objects to be merged
+        active_obj = bpy.context.view_layer.objects.active
+        
+        # Perform the join operation
+        bpy.ops.object.join()
+
+        # After joining, the result is a single object. We can rename it if needed.
+        joined_obj = bpy.context.view_layer.objects.active
+        joined_obj.name = "MeshObject"
+        
+        # Optionally move the merged object to the specified collection
+        for col in joined_obj.users_collection:
+            col.objects.unlink(joined_obj)
+        target_collection.objects.link(joined_obj)
+
+    @classmethod
     def normalize_all(cls,obj):
         '''
         调用前需确保选中了这个obj，也就是当前的active对象是这个obj
