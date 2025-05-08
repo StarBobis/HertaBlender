@@ -124,8 +124,8 @@ register_classes = (
 
     # 模型处理面板
     ModelSplitByLoosePart,
-    ModelMergeBySameVertexGroup,
     ModelSplitByVertexGroup,
+    ModelDeleteLoosePoint,
 
     # 集合的右键菜单栏
     Catter_MarkCollection_Switch,
