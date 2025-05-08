@@ -126,6 +126,7 @@ register_classes = (
     ModelSplitByLoosePart,
     ModelSplitByVertexGroup,
     ModelDeleteLoosePoint,
+    ModelRenameVertexGroupNameWithTheirSuffix,
 
     # 集合的右键菜单栏
     Catter_MarkCollection_Switch,

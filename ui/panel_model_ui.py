@@ -125,6 +125,32 @@ class ModelDeleteLoosePoint(bpy.types.Operator):
         self.report({'INFO'}, "删除松散点成功!")
         return {'FINISHED'}
     
+class ModelRenameVertexGroupNameWithTheirSuffix(bpy.types.Operator):
+    bl_idname = "panel_model.rename_vertex_group_name_with_their_suffix"
+    bl_label = "用模型名称作为前缀重命名顶点组"
+    bl_description = "用模型名称作为前缀重命名顶点组，方便后续合并到一个物体后同名称的顶点组不会合在一起冲突，便于后续一键绑定骨骼。"
+
+    def execute(self, context):
+        
+        if len(bpy.context.selected_objects) == 0:
+            self.report({'ERROR'}, "没有选中的对象！")
+            return {'CANCELLED'}
+        
+        # 遍历所有选中的对象
+        for obj in context.selected_objects:
+            # 仅处理网格对象
+            if obj.type == 'MESH':
+                model_name = obj.name
+                
+                # 遍历顶点组并重命名
+                for vertex_group in obj.vertex_groups:
+                    original_name = vertex_group.name
+                    new_name = f"{model_name}_{original_name}"
+                    vertex_group.name = new_name
+
+        self.report({'INFO'}, "用模型名称作为前缀重命名顶点组成功!")
+        return {'FINISHED'}
+    
 
 class PanelModelProcess(bpy.types.Panel):
     bl_label = "模型处理面板" 
@@ -140,6 +166,7 @@ class PanelModelProcess(bpy.types.Panel):
         layout.operator("panel_model.split_by_loose_part")
         layout.operator("panel_model.split_by_vertex_group")
         layout.operator("panel_model.delete_loose_point")
+        layout.operator("panel_model.rename_vertex_group_name_with_their_suffix")
 
 
         
