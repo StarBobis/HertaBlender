@@ -13,6 +13,8 @@ from bpy.props import BoolProperty,  CollectionProperty
 # XXX Blender4.2开始class中不能出现bl_options，所以我们全部都去掉了。
 # XXX bl_idname必须小写，单词之间以下划线分割，否则报错无法加载
 
+from .panel_model_ui import *
+
 
 
 class RenameAmatureFromGame(bpy.types.Operator):
@@ -178,19 +180,47 @@ class SmoothNormalSaveToUV(bpy.types.Operator):
 
     def execute(self, context):
         SmoothNormal.smooth_normal_save_to_uv()
-        
+
         return {'FINISHED'}
  
 
     
  
 class CatterRightClickMenu(bpy.types.Menu):
+    '''
+    光在Herta面板上放着也不行，因为部分用户的插件数量特别多的时候根本看不到Herta面板
+    所以在右键的3Dmigoto菜单中也放上一份，这样方便查找。
+    '''
     bl_idname = "VIEW3D_MT_object_3Dmigoto"
     bl_label = "3Dmigoto"
     bl_description = "适用于3Dmigoto Mod制作的常用功能"
     
     def draw(self, context):
         layout = self.layout
+        layout.operator(MMTResetRotation.bl_idname)
+        layout.operator(ModelDeleteLoosePoint.bl_idname)
+        layout.separator()
+
+        layout.operator(ModelSplitByLoosePart.bl_idname)
+        layout.operator(SplitMeshByCommonVertexGroup.bl_idname)
+        layout.operator(ModelSplitByVertexGroup.bl_idname)
+        layout.separator()
+
+        layout.operator(RemoveAllVertexGroupOperator.bl_idname)
+        layout.operator(RemoveUnusedVertexGroupOperator.bl_idname)
+        layout.operator(RemoveNotNumberVertexGroup.bl_idname)
+        layout.separator()
+
+        layout.operator(FillVertexGroupGaps.bl_idname)
+        layout.operator(MergeVertexGroupsWithSameNumber.bl_idname)
+        layout.separator()
+
+        layout.operator(ModelRenameVertexGroupNameWithTheirSuffix.bl_idname)
+        layout.operator(AddBoneFromVertexGroupV2.bl_idname)
+        layout.separator()
+
+
+        # 下面这些是右键菜单独有的，不枉面板里放，大部分是用来测试的方法。
         layout.operator(WWMI_ApplyModifierForObjectWithShapeKeysOperator.bl_idname)
         layout.operator(SmoothNormalSaveToUV.bl_idname)
         # 

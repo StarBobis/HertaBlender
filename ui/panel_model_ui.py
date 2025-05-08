@@ -270,6 +270,10 @@ class MMTResetRotation(bpy.types.Operator):
 
 
 class PanelModelProcess(bpy.types.Panel):
+    '''
+    在这里放一份的意义是萌新根本不知道右键菜单能触发这些功能，萌新的话如果你不给他送到嘴边，他是不会吃的。
+    所以面板里放一份方便萌新使用，当然默认是关闭状态也不影响视觉，萌新用的多了成为大佬之后就会用右键菜单里的选项了。
+    '''
     bl_label = "模型处理面板" 
     bl_idname = "VIEW3D_PT_Herta_ModelProcess_Panel"
     bl_space_type = 'VIEW_3D'

@@ -49,7 +49,7 @@ bl_info = {
     "name": "Herta",
     "description": "A blender plugin for generate 3Dmigoto mod.",
     "blender": (3, 6, 0),
-    "version": (1, 1, 9),
+    "version": (1, 2, 0),
     "location": "View3D",
     "category": "Generic",
     "tracker_url":"https://github.com/StarBobis/Herta"
