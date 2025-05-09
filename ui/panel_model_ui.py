@@ -466,8 +466,16 @@ class ModelVertexGroupRenameByLocation(bpy.types.Operator):
             self.report({'ERROR'}, "选中的obj数量不足!请先选中源obj，再选中目标obj，一般目标obj就是你自己的模型，源obj就是游戏源模型")
             return {'CANCELLED'}
         
-        source_obj = bpy.context.selected_objects[1]
-        target_obj = bpy.context.selected_objects[0]
+        active_obj = bpy.context.view_layer.objects.active
+        selected_objs = bpy.context.selected_objects
+        
+        # 判断哪个是后选的（即激活对象）
+        if active_obj in selected_objs:
+            target_obj = active_obj
+            source_obj = [obj for obj in selected_objs if obj != target_obj][0]
+        
+        print("source: " + source_obj.name)
+        print("target: " + target_obj.name)
 
         VertexGroupUtils.match_vertex_groups(source_obj, target_obj)
         self.report({'INFO'}, self.bl_label + " 成功!")
@@ -554,6 +562,7 @@ class CatterRightClickMenu(bpy.types.Menu):
         layout.operator(ModelSortVertexGroupByName.bl_idname)
         layout.operator(FillVertexGroupGaps.bl_idname)
         layout.operator(MergeVertexGroupsWithSameNumber.bl_idname)
+        layout.operator(ModelVertexGroupRenameByLocation.bl_idname)
         layout.separator()
 
         layout.operator(ModelRenameVertexGroupNameWithTheirSuffix.bl_idname)
