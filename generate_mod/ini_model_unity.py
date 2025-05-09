@@ -509,6 +509,29 @@ class M_UnityIniModel:
 
         ini_builder.append_section(texture_filter_index_section)
 
+
+    @classmethod
+    def add_unity_cs_vertex_shader_check(cls,ini_builder:M_IniBuilder):
+        print("add_unity_cs_vertex_shader_check::")
+        vscheck_section = M_IniSection(M_SectionType.VertexShaderCheck)
+
+        vs_hash_set = set()
+        for draw_ib, draw_ib_model in cls.drawib_drawibmodel_dict.items():
+            for vs_hash in draw_ib_model.vshash_list:
+                vs_hash_set.add(vs_hash)
+        
+        for vs_hash in vs_hash_set:
+            print("VSHash: " + vs_hash)
+            vscheck_section.append("[ShaderOverride_" + vs_hash + "]")
+            vscheck_section.append("hash = " + vs_hash)
+            vscheck_section.append("if $costume_mods")
+            vscheck_section.append("  checktextureoverride = ib")
+            vscheck_section.append("endif")
+            vscheck_section.new_line()
+        
+        ini_builder.append_section(vscheck_section)
+
+
     @classmethod
     def generate_unity_cs_config_ini(cls):
         '''
@@ -545,8 +568,13 @@ class M_UnityIniModel:
 
             cls.global_generate_mod_number = cls.global_generate_mod_number + 1
 
+        cls.add_unity_cs_vertex_shader_check(ini_builder=config_ini_builder)
+
         config_ini_builder.save_to_file(GlobalConfig.path_generate_mod_folder() + GlobalConfig.workspacename + ".ini")
         
+
+
+
 
     @classmethod
     def generate_unity_vs_config_ini(cls):
@@ -562,6 +590,7 @@ class M_UnityIniModel:
         config_ini_builder = M_IniBuilder()
 
         M_IniHelper.generate_hash_style_texture_ini(ini_builder=config_ini_builder,drawib_drawibmodel_dict=cls.drawib_drawibmodel_dict)
+
 
 
         if Properties_GenerateMod.slot_style_texture_add_filter_index():
@@ -584,6 +613,8 @@ class M_UnityIniModel:
             M_IniHelper.move_slot_style_textures(draw_ib_model=draw_ib_model)
 
             cls.global_generate_mod_number = cls.global_generate_mod_number + 1
+
+
 
         config_ini_builder.save_to_file(GlobalConfig.path_generate_mod_folder() + GlobalConfig.workspacename + ".ini")
 

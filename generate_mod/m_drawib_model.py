@@ -161,6 +161,8 @@ class DrawIBModel:
         self.import_model_list = tmp_json_dict["ImportModelList"]
         self.match_first_index_list = tmp_json_dict["MatchFirstIndex"]
         self.part_name_list = tmp_json_dict["PartNameList"]
+        self.vshash_list = tmp_json_dict.get("VSHashList",[])
+
         # print(self.partname_textureresourcereplace_dict)
         self.vertex_limit_hash = tmp_json_dict["VertexLimitVB"]
         self.work_game_type = tmp_json_dict["WorkGameType"]

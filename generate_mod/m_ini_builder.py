@@ -23,6 +23,8 @@ class M_SectionType:
     ResourceShapeKeysOverride = "ResourceShapeKeysOverride"
     ResourceSkeletonOverride = "ResourceSkeletonOverride"
 
+    VertexShaderCheck = "VertexShaderCheck"
+
     CreditInfo = "CreditInfo"
     CommandList = "CommandList"
 
@@ -127,6 +129,9 @@ class M_IniBuilder:
         self.__append_section_line(M_SectionType.ResourceAndTextureOverride_Texture)
 
         self.__append_section_line(M_SectionType.ResourceModInfo)
+
+
+        self.__append_section_line(M_SectionType.VertexShaderCheck)
         
         self.__append_section_line(M_SectionType.CreditInfo)
 
