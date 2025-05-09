@@ -468,16 +468,13 @@ class ModelVertexGroupRenameByLocation(bpy.types.Operator):
         
         active_obj = bpy.context.view_layer.objects.active
         selected_objs = bpy.context.selected_objects
-        
+
         # 判断哪个是后选的（即激活对象）
         if active_obj in selected_objs:
             target_obj = active_obj
             source_obj = [obj for obj in selected_objs if obj != target_obj][0]
         
-        print("source: " + source_obj.name)
-        print("target: " + target_obj.name)
-
-        VertexGroupUtils.match_vertex_groups(source_obj, target_obj)
+        VertexGroupUtils.match_vertex_groups(target_obj, source_obj)
         self.report({'INFO'}, self.bl_label + " 成功!")
 
         return {'FINISHED'}
