@@ -6,7 +6,6 @@ from . import addon_updater_ops
 from .ui.panel_ui import * 
 from .ui.panel_model_ui import *
 from .ui.collection_rightclick_ui import *
-from .ui.obj_rightclick_ui import *
 
 # 全局配置
 from .properties.properties_dbmt_path import Properties_DBMT_Path
@@ -49,7 +48,7 @@ bl_info = {
     "name": "Herta",
     "description": "A blender plugin for generate 3Dmigoto mod.",
     "blender": (3, 6, 0),
-    "version": (1, 2, 0),
+    "version": (1, 2, 1),
     "location": "View3D",
     "category": "Generic",
     "tracker_url":"https://github.com/StarBobis/Herta"
