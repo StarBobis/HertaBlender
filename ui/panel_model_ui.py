@@ -441,6 +441,21 @@ class ModelResetLocation(bpy.types.Operator):
         self.report({'INFO'}, self.bl_label + " 成功!")
         return {'FINISHED'}
     
+class ModelSortVertexGroupByName(bpy.types.Operator):
+    bl_idname = "object.sort_vertex_group_by_name"
+    bl_label = "根据顶点组名称对顶点组进行排序"
+    bl_description = "和Blender顶点组权重那里自带的Sort=>By Name功能一样，放在这里方便快速调用"
+    def execute(self, context):
+        if len(bpy.context.selected_objects) == 0:
+            self.report({'ERROR'}, "没有选中的对象！")
+            return {'CANCELLED'}
+        
+        # for obj in bpy.context.selected_objects:
+        bpy.ops.object.vertex_group_sort(sort_type='NAME')
+        
+        self.report({'INFO'}, self.bl_label + " 成功!")
+        return {'FINISHED'}
+    
 
 class PanelModelProcess(bpy.types.Panel):
     '''
@@ -470,7 +485,8 @@ class PanelModelProcess(bpy.types.Panel):
         layout.operator(RemoveUnusedVertexGroupOperator.bl_idname)
         layout.operator(RemoveNotNumberVertexGroup.bl_idname)
         layout.separator()
-
+        
+        layout.operator(ModelSortVertexGroupByName.bl_idname)
         layout.operator(FillVertexGroupGaps.bl_idname)
         layout.operator(MergeVertexGroupsWithSameNumber.bl_idname)
         layout.separator()
@@ -486,6 +502,7 @@ class PanelModelProcess(bpy.types.Panel):
         
         layout.operator(RecalculateTANGENTWithVectorNormalizedNormal.bl_idname)
         layout.operator(RecalculateCOLORWithVectorNormalizedNormal.bl_idname)
+
 
 
 
@@ -515,6 +532,7 @@ class CatterRightClickMenu(bpy.types.Menu):
         layout.operator(RemoveNotNumberVertexGroup.bl_idname)
         layout.separator()
 
+        layout.operator(ModelSortVertexGroupByName.bl_idname)
         layout.operator(FillVertexGroupGaps.bl_idname)
         layout.operator(MergeVertexGroupsWithSameNumber.bl_idname)
         layout.separator()
