@@ -428,6 +428,18 @@ class RenameAmatureFromGame(bpy.types.Operator):
                     bpy.data.objects.remove(child)
                 bpy.data.objects.remove(obj)
         return {'FINISHED'}
+
+class ModelResetLocation(bpy.types.Operator):
+    bl_idname = "herta.model_reset_location"
+    bl_label = "重置模型在x,y,z轴上的位置为0"
+    bl_description = "把当前选中的obj的x,y,z轴上的位置全部重置为0，使模型回到坐标原点"
+    
+    def execute(self, context):
+        for obj in bpy.context.selected_objects:
+            ObjUtils.reset_obj_location(obj=obj)
+
+        self.report({'INFO'}, self.bl_label + " 成功!")
+        return {'FINISHED'}
     
 
 class PanelModelProcess(bpy.types.Panel):
@@ -444,6 +456,7 @@ class PanelModelProcess(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        layout.operator(ModelResetLocation.bl_idname)
         layout.operator(MMTResetRotation.bl_idname)
         layout.operator(ModelDeleteLoosePoint.bl_idname)
         layout.separator()
@@ -475,7 +488,7 @@ class PanelModelProcess(bpy.types.Panel):
         layout.operator(RecalculateCOLORWithVectorNormalizedNormal.bl_idname)
 
 
-    
+
 class CatterRightClickMenu(bpy.types.Menu):
     '''
     光在Herta面板上放着也不行，因为部分用户的插件数量特别多的时候根本看不到Herta面板
@@ -487,6 +500,7 @@ class CatterRightClickMenu(bpy.types.Menu):
     
     def draw(self, context):
         layout = self.layout
+        layout.operator(ModelResetLocation.bl_idname)
         layout.operator(MMTResetRotation.bl_idname)
         layout.operator(ModelDeleteLoosePoint.bl_idname)
         layout.separator()

@@ -797,10 +797,13 @@ class ObjUtils:
             obj.rotation_euler[1] = 0.0  # Y轴
             obj.rotation_euler[2] = 0.0  # Z轴
 
-            # 应用旋转变换
-            # bpy.context.view_layer.objects.active = obj
-            # bpy.ops.object.transform_apply(rotation=True)
-
+    @classmethod
+    def reset_obj_location(cls, obj):
+        if obj.type == "MESH":
+            # 将位置归零
+            obj.location[0] = 0.0  # X轴
+            obj.location[1] = 0.0  # Y轴
+            obj.location[2] = 0.0  # Z轴
 
 class SmoothNormal:
     '''
