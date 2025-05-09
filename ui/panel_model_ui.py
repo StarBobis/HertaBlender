@@ -456,6 +456,24 @@ class ModelSortVertexGroupByName(bpy.types.Operator):
         self.report({'INFO'}, self.bl_label + " 成功!")
         return {'FINISHED'}
     
+class ModelVertexGroupRenameByLocation(bpy.types.Operator):
+    bl_idname = "herta.vertex_group_rename_by_location"
+    bl_label = "将目标obj的顶点组按位置对应关系改名"
+    bl_description = "先选中一个源obj，再选中一个目标obj，再点击此按钮，会根据顶点组对应位置把目标obj的顶点组改名为源obj的顶点组名称，目标obj的顶点组中，和源obj顶点组位置相近的顶点组将被改名为源obj对应位置的顶点组的名称，未能识别的顶点组将被命名为unknown"
+
+    def execute(self, context):
+        if len(bpy.context.selected_objects) < 2:
+            self.report({'ERROR'}, "选中的obj数量不足!请先选中源obj，再选中目标obj，一般目标obj就是你自己的模型，源obj就是游戏源模型")
+            return {'CANCELLED'}
+        
+        source_obj = bpy.context.selected_objects[1]
+        target_obj = bpy.context.selected_objects[0]
+
+        VertexGroupUtils.match_vertex_groups(source_obj, target_obj)
+        self.report({'INFO'}, self.bl_label + " 成功!")
+
+        return {'FINISHED'}
+    
 
 class PanelModelProcess(bpy.types.Panel):
     '''
@@ -485,10 +503,11 @@ class PanelModelProcess(bpy.types.Panel):
         layout.operator(RemoveUnusedVertexGroupOperator.bl_idname)
         layout.operator(RemoveNotNumberVertexGroup.bl_idname)
         layout.separator()
-        
+
         layout.operator(ModelSortVertexGroupByName.bl_idname)
         layout.operator(FillVertexGroupGaps.bl_idname)
         layout.operator(MergeVertexGroupsWithSameNumber.bl_idname)
+        layout.operator(ModelVertexGroupRenameByLocation.bl_idname)
         layout.separator()
 
         layout.operator(ModelRenameVertexGroupNameWithTheirSuffix.bl_idname)

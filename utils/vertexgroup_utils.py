@@ -219,3 +219,93 @@ class VertexGroupUtils:
         for i in range(1, len(real_keys) + 1):
             bpy.data.objects['{}.{:03d}'.format(origin_name, i)].name = '{}.{}'.format(
                 origin_name, real_keys[i - 1])
+            
+    @classmethod
+    def get_vertex_group_weight(cls,vgroup, vertex):
+        '''
+        Credit to @Comilarex
+        https://gamebanana.com/tools/19057
+        '''
+        for group in vertex.groups:
+            if group.group == vgroup.index:
+                return group.weight
+        return 0.0
+
+    @classmethod
+    def calculate_vertex_influence_area(cls,obj):
+        '''
+        Credit to @Comilarex
+        https://gamebanana.com/tools/19057
+        '''
+        vertex_area = [0.0] * len(obj.data.vertices)
+        
+        for face in obj.data.polygons:
+            # Assuming the area is evenly distributed among the vertices
+            area_per_vertex = face.area / len(face.vertices)
+            for vert_idx in face.vertices:
+                vertex_area[vert_idx] += area_per_vertex
+
+        return vertex_area
+
+    @classmethod
+    def get_weighted_center(cls, obj, vgroup):
+        '''
+        Credit to @Comilarex
+        https://gamebanana.com/tools/19057
+        '''
+        total_weight_area = 0.0
+        weighted_position_sum = Vector((0.0, 0.0, 0.0))
+
+        # Calculate the area influenced by each vertex
+        vertex_influence_area = cls.calculate_vertex_influence_area(obj)
+
+        for vertex in obj.data.vertices:
+            weight = cls.get_vertex_group_weight(vgroup, vertex)
+            influence_area = vertex_influence_area[vertex.index]
+            weight_area = weight * influence_area
+
+            if weight_area > 0:
+                weighted_position_sum += obj.matrix_world @ vertex.co * weight_area
+                total_weight_area += weight_area
+
+        if total_weight_area > 0:
+            return weighted_position_sum / total_weight_area
+        else:
+            return None
+
+    @classmethod
+    def match_vertex_groups(cls, base_obj, target_obj):
+        '''
+        Credit to @Comilarex
+        https://gamebanana.com/tools/19057
+        '''
+        # Rename all vertex groups in base_obj to "unknown"
+        for base_group in base_obj.vertex_groups:
+            base_group.name = "unknown"
+
+        # Precompute centers for all target vertex groups
+        target_centers = {}
+        for target_group in target_obj.vertex_groups:
+            target_centers[target_group.name] = cls.get_weighted_center(target_obj, target_group)
+
+        # Perform the matching and renaming process
+        for base_group in base_obj.vertex_groups:
+            base_center = cls.get_weighted_center(base_obj, base_group)
+            if base_center is None:
+                continue
+
+            best_match = None
+            best_distance = float('inf')
+
+            for target_group_name, target_center in target_centers.items():
+                if target_center is None:
+                    continue
+
+                distance = (base_center - target_center).length
+                if distance < best_distance:
+                    best_distance = distance
+                    best_match = target_group_name
+
+            if best_match:
+                base_group.name = best_match
+
