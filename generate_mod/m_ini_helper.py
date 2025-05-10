@@ -24,7 +24,7 @@ class M_IniHelper:
         
         # 尝试读取Setting.json里的设置，解析错误就还使用默认的
         try:
-            setting_json_dict = JsonUtils.LoadFromFile(GlobalConfig.path_setting_json())
+            setting_json_dict = JsonUtils.LoadFromFile(GlobalConfig.path_main_json())
             print(setting_json_dict)
             mod_switch_key = str(setting_json_dict["ModSwitchKey"])
             mod_switch_key_list = mod_switch_key.split(",")

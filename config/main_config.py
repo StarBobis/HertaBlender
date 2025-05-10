@@ -62,13 +62,16 @@ class GlobalConfig:
     @classmethod
     def read_from_main_json(cls) :
         main_json_path = GlobalConfig.path_main_json()
+
+        # 先从main_json_path里读取dbmt位置，也就是dbmt总工作空间的位置
+        # 在新架构中，总工作空间位置已不会再发生改变，所以用户只需要选择一次就可以了
         if os.path.exists(main_json_path):
             main_setting_file = open(main_json_path)
             main_setting_json = json.load(main_setting_file)
             main_setting_file.close()
             cls.workspacename = main_setting_json.get("WorkSpaceName","")
             cls.gamename = main_setting_json.get("GameName","")
-            cls.dbmtlocation = main_setting_json.get("DBMTLocation","") + "\\"
+            cls.dbmtlocation = main_setting_json.get("DBMTWorkFolder","") + "\\"
             cls.current_game_migoto_folder = main_setting_json.get("CurrentGameMigotoFolder","") + "\\"
         else:
             print("Can't find: " + main_json_path)
@@ -137,14 +140,7 @@ class GlobalConfig:
     @classmethod
     def path_main_json(cls):
         if Properties_DBMT_Path.use_specified_dbmt():
-            return os.path.join(Properties_DBMT_Path.path(),"Configs\\Main.json")
+            return os.path.join(Properties_DBMT_Path.path(),"Configs\\DBMT-Config.json")
         else:
-            return os.path.join(GlobalConfig.path_appdata_local(), "DBMT-Main.json")
-    
-    @classmethod
-    def path_setting_json(cls):
-        if Properties_DBMT_Path.use_specified_dbmt():
-            return os.path.join(Properties_DBMT_Path.path(),"Configs\\Setting.json")
-        else:
-            return os.path.join(GlobalConfig.path_appdata_local(), "DBMT-Setting.json")
+            return os.path.join(GlobalConfig.path_appdata_local(), "DBMT-Config.json")
     
