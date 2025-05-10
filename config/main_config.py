@@ -69,8 +69,8 @@ class GlobalConfig:
             main_setting_file = open(main_json_path)
             main_setting_json = json.load(main_setting_file)
             main_setting_file.close()
-            cls.workspacename = main_setting_json.get("WorkSpaceName","")
-            cls.gamename = main_setting_json.get("GameName","")
+            cls.workspacename = main_setting_json.get("CurrentWorkSpace","")
+            cls.gamename = main_setting_json.get("CurrentGameName","")
             cls.dbmtlocation = main_setting_json.get("DBMTWorkFolder","") + "\\"
             cls.current_game_migoto_folder = main_setting_json.get("CurrentGameMigotoFolder","") + "\\"
         else:
