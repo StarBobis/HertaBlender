@@ -47,11 +47,11 @@ https://github.com/BlackStartx/PyCharm-Blender-Plugin
 bl_info = {
     "name": "Herta",
     "description": "A blender plugin for generate 3Dmigoto mod.",
-    "blender": (3, 6, 0),
+    "blender": (4, 2, 0),
     "version": (1, 2, 7),
     "location": "View3D",
     "category": "Generic",
-    "tracker_url":"https://github.com/StarBobis/Herta"
+    "tracker_url":"https://github.com/StarBobis/HertaBlender"
 }
 
 class UpdaterPanel(bpy.types.Panel):
