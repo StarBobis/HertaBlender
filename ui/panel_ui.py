@@ -110,7 +110,11 @@ class PanelGenerateModConfig(bpy.types.Panel):
         # 因为UnrealVS显然无法支持这里所有的特性，每个游戏只能支持一部分特性。
         if GlobalConfig.gamename == "GF2" or GlobalConfig.gamename == "YYSLS":
             layout.prop(context.scene.properties_generate_mod, "export_same_number",text="使用共享TANGENT避免增加顶点数")
-
+        elif GlobalConfig.gamename == "HSR":
+            layout.prop(context.scene.properties_generate_mod, "only_use_marked_texture",text="只使用标记过的贴图")
+            layout.prop(context.scene.properties_generate_mod, "forbid_auto_texture_ini",text="禁止自动贴图流程")
+            layout.prop(context.scene.properties_generate_mod, "recalculate_tangent",text="向量归一化法线存入TANGENT(全局)")
+        
         if GlobalConfig.get_game_category() == GameCategory.UnityVS or GlobalConfig.get_game_category() == GameCategory.UnityCS:
             if GlobalConfig.gamename == "GF2" or GlobalConfig.gamename == "YYSLS":
                 layout.prop(context.scene.properties_generate_mod, "export_same_number",text="使用共享TANGENT避免增加顶点数")
