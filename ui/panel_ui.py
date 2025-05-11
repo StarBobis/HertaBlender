@@ -108,8 +108,11 @@ class PanelGenerateModConfig(bpy.types.Panel):
         layout = self.layout
         # 根据当前游戏类型判断哪些应该显示哪些不显示。
         # 因为UnrealVS显然无法支持这里所有的特性，每个游戏只能支持一部分特性。
+        if GlobalConfig.gamename == "GF2" or GlobalConfig.gamename == "YYSLS":
+            layout.prop(context.scene.properties_generate_mod, "export_same_number",text="使用共享TANGENT避免增加顶点数")
+
         if GlobalConfig.get_game_category() == GameCategory.UnityVS or GlobalConfig.get_game_category() == GameCategory.UnityCS:
-            if GlobalConfig.gamename == "GF2":
+            if GlobalConfig.gamename == "GF2" or GlobalConfig.gamename == "YYSLS":
                 layout.prop(context.scene.properties_generate_mod, "export_same_number",text="使用共享TANGENT避免增加顶点数")
 
             layout.prop(context.scene.properties_generate_mod, "only_use_marked_texture",text="只使用标记过的贴图")

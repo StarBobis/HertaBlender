@@ -545,8 +545,9 @@ class M_CTX_IniModel:
             global_key_index_counstants_added = M_IniHelper.add_switchkey_sections(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model,global_generate_mod_number=cls.global_generate_mod_number,input_global_key_index_constants=cls.global_key_index_constants) 
             cls.global_key_index_constants = global_key_index_counstants_added
 
-            if GlobalConfig.gamename != "HSR":
+            if GlobalConfig.gamename != "HSR" and GlobalConfig.gamename != "YYSLS":
                 cls.add_unity_vs_texture_override_vlr_section(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model) 
+            
             cls.add_unity_cs_texture_override_vb_sections(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model) 
             cls.add_unity_cs_texture_override_ib_sections(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model) 
 
@@ -590,7 +591,8 @@ class M_CTX_IniModel:
             global_key_index_counstants_added = M_IniHelper.add_switchkey_sections(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model,global_generate_mod_number=cls.global_generate_mod_number,input_global_key_index_constants=cls.global_key_index_constants) 
             cls.global_key_index_constants = global_key_index_counstants_added
 
-            cls.add_unity_vs_texture_override_vlr_section(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
+            if GlobalConfig.gamename != "YYSLS":
+                cls.add_unity_vs_texture_override_vlr_section(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             # cls.add_unity_vs_texture_override_vb_sections(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_unity_vs_texture_override_ib_sections(config_ini_builder=config_ini_builder,commandlist_ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_unity_vs_resource_vb_sections(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)

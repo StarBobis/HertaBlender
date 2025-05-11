@@ -48,8 +48,14 @@ class BufferDataConverter:
         return numpy.round(input_array * 127).astype(numpy.int8)
     
     @classmethod
+    def convert_4x_float32_to_r16g16b16a16_snorm(cls,input_array):
+        return numpy.round(input_array * 32767).astype(numpy.int16)
+
+    @classmethod
     def convert_4x_float32_to_r8g8b8a8_unorm(cls,input_array):
         return numpy.round(input_array * 255).astype(numpy.uint8)
+    
+
     
     @classmethod
     def normalize_weights(cls, weights):
@@ -475,7 +481,7 @@ class BufferModel:
                     result[2::4] = normals[2::3]
                     result = result.reshape(-1, 4)
 
-                    self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm(new_array)
+                    self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm(result)
 
                 else:
                     result = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
@@ -498,7 +504,17 @@ class BufferModel:
                 result[1::4] = tangents[1::3]  # y 分量
                 result[2::4] = tangents[2::3]  # z 分量
 
-                if GlobalConfig.get_game_category() == GameCategory.UnityCS or GlobalConfig.get_game_category() == GameCategory.UnityVS:
+                
+
+                if GlobalConfig.gamename == "YYSLS":
+                    # 燕云十六声的TANGENT.w固定为1
+                    tangent_w = numpy.ones(mesh_loops_length, dtype=numpy.float32)
+                    # TODO 这里仍然不知道是什么，可能是平滑法线？
+                    # result[0::4] *= -1
+                    # result[1::4] *= -1
+                    # result[2::4] *= -1
+                    result[3::4] = tangent_w
+                elif GlobalConfig.get_game_category() == GameCategory.UnityCS or GlobalConfig.get_game_category() == GameCategory.UnityVS:
                     bitangent_signs = numpy.empty(mesh_loops_length, dtype=numpy.float32)
                     mesh_loops.foreach_get("bitangent_sign", bitangent_signs)
                     # XXX 将副切线符号乘以 -1
@@ -522,6 +538,7 @@ class BufferModel:
                 elif d3d11_element.Format == 'R8G8B8A8_UNORM':
                     result = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm(result)
                 
+                # 第五人格格式
                 elif d3d11_element.Format == "R32G32B32_FLOAT":
                     result = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
 
@@ -531,10 +548,36 @@ class BufferModel:
 
                     result = result.reshape(-1, 3)
 
+                # 燕云十六声格式
+                elif d3d11_element.Format == 'R16G16B16A16_SNORM':
+                    # TODO 燕云十六声格式
+                    # 要想搞懂这个，就必须搞懂migoto_utils里的格式转换用法。
+                    result = BufferDataConverter.convert_4x_float32_to_r16g16b16a16_snorm(result)
+                    pass
+
                 self.element_vertex_ndarray[d3d11_element_name] = result
 
-            # TODO YYSLS需要BINORMAL导出，前提是先把这些代码差分简化，因为YYSLS的TANGENT和NORMAL的.w都是固定的1
-            
+            #  YYSLS需要BINORMAL导出，前提是先把这些代码差分简化，因为YYSLS的TANGENT和NORMAL的.w都是固定的1
+            elif d3d11_element_name.startswith('BINORMAL'):
+                result = numpy.empty(mesh_loops_length * 4, dtype=numpy.float32)
+
+                # 使用 foreach_get 批量获取切线和副切线符号数据
+                binormals = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
+                mesh_loops.foreach_get("bitangent", binormals)
+                # 将切线分量放置到输出数组中
+                # TODO 目前仍然不清楚YYSLS的BINORMAL和TANGENT是如何计算的，只能实现近似的效果，即BINORMAL全部翻转。
+                result[0::4] = binormals[0::3] * -1 # x 分量
+                result[1::4] = binormals[1::3] * -1 # y 分量
+                result[2::4] = binormals[2::3] * -1 # z 分量
+                binormal_w = numpy.ones(mesh_loops_length, dtype=numpy.float32)
+                result[3::4] = binormal_w
+                result = result.reshape(-1, 4)
+
+                if d3d11_element.Format == 'R16G16B16A16_SNORM':
+                    #  燕云十六声格式
+                    result = BufferDataConverter.convert_4x_float32_to_r16g16b16a16_snorm(result)
+                    
+                self.element_vertex_ndarray[d3d11_element_name] = result
             elif d3d11_element_name.startswith('COLOR'):
                 # TimerUtils.Start("Get COLOR")
 
