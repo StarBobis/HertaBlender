@@ -207,7 +207,7 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
             else:
                 obj.data.materials.append(material)
 
-
+# TODO 每个游戏的导入、生成Mod流程全都不一样
 def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib_path:str):
     operator.report({'INFO'}, "Import From " + fmt_path)
     TimerUtils.Start("Import 3Dmigoto Raw")
@@ -299,7 +299,23 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             shapekeys[element.SemanticIndex] = data
         elif element.SemanticName.startswith("NORMAL"):
             use_normals = True
-            normals = [(x[0], x[1], x[2]) for x in data]
+            '''
+            燕云十六声在导入法线时，必须先进行处理。
+            这里要注意一个点，如果dump出来的法线数据，全部是正数的话，说明导出时进行了归一化
+            比如燕云的法线就是R8G8B8A8_UNORM格式的，而正常的法线应该是R8G8B8A8_SNORM，说明这里进行了归一化到[0,1]之间
+            所以从游戏里导入这种归一化[0,1]的法线时，要反过来操作一下，也就是乘以2再减1范围变为[-1,1]
+            Blender的法线范围就是[-1,1]
+            这种归一化后到[0,1]的法线，可以减少Shader的计算消耗。
+            '''
+            if GlobalConfig.gamename == "YYSLS":
+                print("燕云十六声法线处理")
+                normals = [(x[0] * 2 - 1, x[1] * 2 - 1, x[2] * 2 - 1) for x in data]
+
+                # normals = [(-1 * (x[0] * 2 - 1), -1 * (x[1] * 2 - 1), -1 * (x[2] * 2 - 1)) for x in data]
+
+            else:
+                normals = [(x[0], x[1], x[2]) for x in data]
+
         elif element.SemanticName == "TANGENT":
             pass
         elif element.SemanticName == "BINORMAL":
@@ -348,7 +364,9 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
     
     # XXX 这个方法还必须得在mesh.validate和mesh.update之后调用 3.6和4.2都可以用这个
     if use_normals:
+        # Blender4.2 移除了mesh.create_normal_splits()
         mesh.normals_split_custom_set_from_vertices(normals)
+        mesh.calc_tangents()
 
     # auto texture 
     create_material_with_texture(obj, mesh_name=mesh_name,directory= os.path.dirname(fmt_path))

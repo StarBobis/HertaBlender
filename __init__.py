@@ -15,6 +15,9 @@ from .properties.properties_wwmi import Properties_WWMI
 
 from .migoto.migoto_import import *
 
+# SSMT开发
+from .ui.panel_ssmt import *
+
 
 '''
 Compatible with all version start from Blender 3.6 LTS To 4.2LTS To Latest version.
@@ -138,6 +141,10 @@ register_classes = (
     PanelButtons,
     UpdaterPanel,
     PanelModelProcess,
+
+    # SSMT预备代码
+    # PanelSSMTExtractModel,
+    # SSMTExtractModelGI,
 )
 
 

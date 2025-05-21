@@ -48,12 +48,14 @@ class BufferDataConverter:
         return numpy.round(input_array * 127).astype(numpy.int8)
     
     @classmethod
+    def convert_4x_float32_to_r8g8b8a8_unorm(cls,input_array):
+        return numpy.round(input_array * 255).astype(numpy.uint8)
+    
+    @classmethod
     def convert_4x_float32_to_r16g16b16a16_snorm(cls,input_array):
         return numpy.round(input_array * 32767).astype(numpy.int16)
 
-    @classmethod
-    def convert_4x_float32_to_r8g8b8a8_unorm(cls,input_array):
-        return numpy.round(input_array * 255).astype(numpy.uint8)
+
     
 
     
@@ -162,7 +164,7 @@ class BufferDataConverter:
     
     @classmethod
     def convert_4x_float32_to_r16g16b16a16_snorm(cls, input_array):
-        return numpy.round(input_array * 32767).astype(numpy.uint16)
+        return numpy.round(input_array * 32767).astype(numpy.int16)
     
     @classmethod
     def average_normal_tangent(cls,obj,indexed_vertices,d3d11GameType,dtype):
@@ -474,6 +476,11 @@ class BufferModel:
 
                 elif d3d11_element.Format == 'R8G8B8A8_UNORM':
                     result = numpy.ones(mesh_loops_length * 4, dtype=numpy.float32)
+
+                    # 燕云十六声的最后一位w固定为0
+                    if GlobalConfig.gamename == "YYSLS":
+                        result = numpy.zeros(mesh_loops_length * 4, dtype=numpy.float32)
+                        
                     normals = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
                     mesh_loops.foreach_get('normal', normals)
                     result[0::4] = normals[0::3]
@@ -481,8 +488,19 @@ class BufferModel:
                     result[2::4] = normals[2::3]
                     result = result.reshape(-1, 4)
 
-                    self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm(result)
+                    # 因为法线数据是[-1,1]如果非要导出成UNORM，那一定是进行了归一化到[0,1]
+                    # 所以这里也要处理
+                    
+                    def DeConvert(nor):
+                        return (nor + 1) * 0.5
 
+                    for i in range(len(result)):
+                        result[i][0] = DeConvert(result[i][0])
+                        result[i][1] = DeConvert(result[i][1])
+                        result[i][2] = DeConvert(result[i][2])
+
+                    self.element_vertex_ndarray[d3d11_element_name] = BufferDataConverter.convert_4x_float32_to_r8g8b8a8_unorm(result)
+                
                 else:
                     result = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
                     mesh_loops.foreach_get('normal', result)
@@ -503,8 +521,6 @@ class BufferModel:
                 result[0::4] = tangents[0::3]  # x 分量
                 result[1::4] = tangents[1::3]  # y 分量
                 result[2::4] = tangents[2::3]  # z 分量
-
-                
 
                 if GlobalConfig.gamename == "YYSLS":
                     # 燕云十六声的TANGENT.w固定为1
@@ -552,8 +568,12 @@ class BufferModel:
                 elif d3d11_element.Format == 'R16G16B16A16_SNORM':
                     # TODO 燕云十六声格式
                     # 要想搞懂这个，就必须搞懂migoto_utils里的格式转换用法。
+
+                    # result[0::4] *= -1
+                    # result[1::4] *= -1
+                    # result[2::4] *= -1
                     result = BufferDataConverter.convert_4x_float32_to_r16g16b16a16_snorm(result)
-                    pass
+                    
 
                 self.element_vertex_ndarray[d3d11_element_name] = result
 
@@ -566,9 +586,9 @@ class BufferModel:
                 mesh_loops.foreach_get("bitangent", binormals)
                 # 将切线分量放置到输出数组中
                 # TODO 目前仍然不清楚YYSLS的BINORMAL和TANGENT是如何计算的，只能实现近似的效果，即BINORMAL全部翻转。
-                result[0::4] = binormals[0::3] * -1 # x 分量
-                result[1::4] = binormals[1::3] * -1 # y 分量
-                result[2::4] = binormals[2::3] * -1 # z 分量
+                result[0::4] = binormals[0::3]  # x 分量
+                result[1::4] = binormals[1::3]   # y 分量
+                result[2::4] = binormals[2::3]  # z 分量
                 binormal_w = numpy.ones(mesh_loops_length, dtype=numpy.float32)
                 result[3::4] = binormal_w
                 result = result.reshape(-1, 4)
