@@ -475,6 +475,8 @@ class BufferModel:
 
 
                 elif d3d11_element.Format == 'R8G8B8A8_UNORM':
+                    # 因为法线数据是[-1,1]如果非要导出成UNORM，那一定是进行了归一化到[0,1]
+                    
                     result = numpy.ones(mesh_loops_length * 4, dtype=numpy.float32)
 
                     # 燕云十六声的最后一位w固定为0
@@ -487,10 +489,8 @@ class BufferModel:
                     result[1::4] = normals[1::3]
                     result[2::4] = normals[2::3]
                     result = result.reshape(-1, 4)
-
-                    # 因为法线数据是[-1,1]如果非要导出成UNORM，那一定是进行了归一化到[0,1]
-                    # 所以这里也要处理
                     
+                    # 归一化 (此处感谢 球球 的代码开发)
                     def DeConvert(nor):
                         return (nor + 1) * 0.5
 
@@ -566,12 +566,6 @@ class BufferModel:
 
                 # 燕云十六声格式
                 elif d3d11_element.Format == 'R16G16B16A16_SNORM':
-                    # TODO 燕云十六声格式
-                    # 要想搞懂这个，就必须搞懂migoto_utils里的格式转换用法。
-
-                    # result[0::4] *= -1
-                    # result[1::4] *= -1
-                    # result[2::4] *= -1
                     result = BufferDataConverter.convert_4x_float32_to_r16g16b16a16_snorm(result)
                     
 
@@ -585,10 +579,10 @@ class BufferModel:
                 binormals = numpy.empty(mesh_loops_length * 3, dtype=numpy.float32)
                 mesh_loops.foreach_get("bitangent", binormals)
                 # 将切线分量放置到输出数组中
-                # TODO 目前仍然不清楚YYSLS的BINORMAL和TANGENT是如何计算的，只能实现近似的效果，即BINORMAL全部翻转。
-                result[0::4] = binormals[0::3]  # x 分量
-                result[1::4] = binormals[1::3]   # y 分量
-                result[2::4] = binormals[2::3]  # z 分量
+                # BINORMAL全部翻转即可得到和YYSLS游戏中一样的效果。
+                result[0::4] = binormals[0::3] * -1 # x 分量
+                result[1::4] = binormals[1::3] * -1  # y 分量
+                result[2::4] = binormals[2::3] * -1 # z 分量
                 binormal_w = numpy.ones(mesh_loops_length, dtype=numpy.float32)
                 result[3::4] = binormal_w
                 result = result.reshape(-1, 4)

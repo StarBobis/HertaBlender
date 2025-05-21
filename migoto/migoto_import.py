@@ -306,13 +306,11 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
             所以从游戏里导入这种归一化[0,1]的法线时，要反过来操作一下，也就是乘以2再减1范围变为[-1,1]
             Blender的法线范围就是[-1,1]
             这种归一化后到[0,1]的法线，可以减少Shader的计算消耗。
+            # (此处感谢 球球 的代码开发)
             '''
             if GlobalConfig.gamename == "YYSLS":
                 print("燕云十六声法线处理")
                 normals = [(x[0] * 2 - 1, x[1] * 2 - 1, x[2] * 2 - 1) for x in data]
-
-                # normals = [(-1 * (x[0] * 2 - 1), -1 * (x[1] * 2 - 1), -1 * (x[2] * 2 - 1)) for x in data]
-
             else:
                 normals = [(x[0], x[1], x[2]) for x in data]
 
