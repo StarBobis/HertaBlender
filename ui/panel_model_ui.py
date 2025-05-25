@@ -1,4 +1,6 @@
 import bpy
+import bmesh
+import numpy
 
 from bpy.props import BoolProperty,  CollectionProperty
 
@@ -480,6 +482,120 @@ class ModelVertexGroupRenameByLocation(bpy.types.Operator):
         return {'FINISHED'}
     
 
+class ExtractSubmeshOperator(bpy.types.Operator):
+    bl_idname = "mesh.extract_submesh"
+    bl_label = "Split By DrawIndexed"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    start_index: bpy.props.IntProperty(
+        name="Start Index",
+        description="Starting index in the index buffer",
+        default=0,
+        min=0
+    ) # type: ignore
+
+    index_count: bpy.props.IntProperty(
+        name="Index Count",
+        description="Number of indices to include (must be multiple of 3)",
+        default=3,
+        min=3
+    ) # type: ignore
+
+    def execute(self, context):
+        obj = context.active_object
+        if not obj or obj.type != 'MESH':
+            self.report({'ERROR'}, "Select a mesh object")
+            return {'CANCELLED'}
+
+        # 原始网格数据
+        original_mesh = obj.data
+        original_mesh.calc_loop_triangles()
+        # original_mesh.calc_normals_split()
+
+        # 获取顶点索引数据
+        loop_count = len(original_mesh.loops)
+        orig_indices = numpy.zeros(loop_count, dtype=numpy.int32)
+        original_mesh.loops.foreach_get('vertex_index', orig_indices)
+
+        start = self.start_index
+        count = self.index_count
+        end_index = start + count - 1
+
+        # 输入验证
+        if start + count > loop_count:
+            self.report({'ERROR'}, "Index range exceeds buffer")
+            return {'CANCELLED'}
+        if count % 3 != 0:
+            self.report({'ERROR'}, "Index count must be multiple of 3")
+            return {'CANCELLED'}
+
+        # 提取子集索引
+        subset_indices = orig_indices[start:start+count]
+
+        # 创建唯一顶点映射
+        unique_verts, inverse = numpy.unique(subset_indices, return_inverse=True)
+        
+        # 创建新网格
+        new_mesh = bpy.data.meshes.new(f"Submesh_{start}_{end_index}")
+        new_mesh.from_pydata(
+            [original_mesh.vertices[i].co for i in unique_verts],
+            [],
+            []
+        )
+
+        # 使用BMesh构建几何
+        bm = bmesh.new()
+        bm.from_mesh(new_mesh)
+        bm.verts.ensure_lookup_table()
+
+        # 添加面
+        for i in range(0, count, 3):
+            try:
+                face_verts = [bm.verts[inverse[i+j]] for j in range(3)]
+                bm.faces.new(face_verts)
+            except:
+                pass
+
+        # 传输网格数据
+        bm.to_mesh(new_mesh)
+        bm.free()
+
+        # 复制法线数据
+        loop_normals = [original_mesh.loops[start+i].normal for i in range(count)]
+        # new_mesh.use_auto_smooth = True
+        new_mesh.normals_split_custom_set(loop_normals)
+        new_mesh.update()
+
+        # 复制UV数据
+        if original_mesh.uv_layers:
+            uv_data = original_mesh.uv_layers.active.data
+            new_uv = new_mesh.uv_layers.new(name="UVMap")
+            for i in range(count):
+                new_uv.data[i].uv = uv_data[start+i].uv
+
+        # 创建集合
+        collection_name = f"Mesh_{start}_{end_index}"
+        collection = bpy.data.collections.get(collection_name) or \
+                     bpy.data.collections.new(collection_name)
+        
+        if not collection.users:
+            context.scene.collection.children.link(collection)
+
+        # 创建新对象
+        new_obj = bpy.data.objects.new(new_mesh.name, new_mesh)
+        new_obj.matrix_world = obj.matrix_world  # 保持变换矩阵
+        
+        # 添加到集合
+        for coll in new_obj.users_collection:
+            coll.objects.unlink(new_obj)
+        collection.objects.link(new_obj)
+
+        context.view_layer.objects.active = new_obj
+        new_obj.select_set(True)
+
+        return {'FINISHED'}
+    
+
 class PanelModelProcess(bpy.types.Panel):
     '''
     在这里放一份的意义是萌新根本不知道右键菜单能触发这些功能，萌新的话如果你不给他送到嘴边，他是不会吃的。
@@ -499,10 +615,7 @@ class PanelModelProcess(bpy.types.Panel):
         layout.operator(ModelDeleteLoosePoint.bl_idname)
         layout.separator()
 
-        layout.operator(ModelSplitByLoosePart.bl_idname)
-        layout.operator(SplitMeshByCommonVertexGroup.bl_idname)
-        layout.operator(ModelSplitByVertexGroup.bl_idname)
-        layout.separator()
+
 
         layout.operator(RemoveAllVertexGroupOperator.bl_idname)
         layout.operator(RemoveUnusedVertexGroupOperator.bl_idname)
@@ -527,7 +640,33 @@ class PanelModelProcess(bpy.types.Panel):
         layout.operator(RecalculateTANGENTWithVectorNormalizedNormal.bl_idname)
         layout.operator(RecalculateCOLORWithVectorNormalizedNormal.bl_idname)
 
+class PanelModelSplit(bpy.types.Panel):
+    '''
+    由于功能特别多，所以按照使用类型对模型分割单独划分出一块儿面板使用
+    '''
+    bl_label = "模型分割" 
+    bl_idname = "VIEW3D_PT_Herta_ModelSplit_Panel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'Herta'
+    bl_options = {'DEFAULT_CLOSED'}
 
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator(ModelSplitByLoosePart.bl_idname)
+        layout.operator(SplitMeshByCommonVertexGroup.bl_idname)
+        layout.operator(ModelSplitByVertexGroup.bl_idname)
+        layout.separator()
+
+        scene = context.scene
+
+        layout.prop(scene, "submesh_start")
+        layout.prop(scene, "submesh_count")
+        
+        op = layout.operator("mesh.extract_submesh")
+        op.start_index = scene.submesh_start
+        op.index_count = scene.submesh_count
 
 
 class CatterRightClickMenu(bpy.types.Menu):

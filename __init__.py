@@ -51,7 +51,7 @@ bl_info = {
     "name": "Herta",
     "description": "A blender plugin for generate 3Dmigoto mod.",
     "blender": (4, 2, 0),
-    "version": (1, 2, 8),
+    "version": (1, 2, 9),
     "location": "View3D",
     "category": "Generic",
     "tracker_url":"https://github.com/StarBobis/HertaBlender"
@@ -142,6 +142,11 @@ register_classes = (
     UpdaterPanel,
     PanelModelProcess,
 
+
+
+    ExtractSubmeshOperator,
+    PanelModelSplit,
+
     # SSMT预备代码
     # PanelSSMTExtractModel,
     # SSMTExtractModelGI,
@@ -205,7 +210,16 @@ def register():
 
     addon_updater_ops.register(bl_info)
 
-    bpy.utils.register_class(HertaUpdatePreference)
+    bpy.types.Scene.submesh_start = bpy.props.IntProperty(
+        name="Start Index",
+        default=0,
+        min=0
+    )
+    bpy.types.Scene.submesh_count = bpy.props.IntProperty(
+        name="Index Count",
+        default=3,
+        min=3
+    )
 
 
 
@@ -219,6 +233,9 @@ def unregister():
 
     # 卸载插件面板中的更新面板
     bpy.utils.unregister_class(HertaUpdatePreference)
+
+    del bpy.types.Scene.submesh_start
+    del bpy.types.Scene.submesh_count
 
 if __name__ == "__main__":
     register()
