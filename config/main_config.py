@@ -2,6 +2,7 @@ import bpy
 import os
 import json
 
+
 from ..properties.properties_dbmt_path import Properties_DBMT_Path
 
 class GameCategory:
@@ -143,4 +144,42 @@ class GlobalConfig:
             return os.path.join(Properties_DBMT_Path.path(),"Configs\\DBMT-Config.json")
         else:
             return os.path.join(GlobalConfig.path_appdata_local(), "DBMT-Config.json")
+        
+    # 提取模型需要读取当前的游戏的3Dmigoto下的最新的FrameAnalysis文件夹
+    @classmethod
+    def path_latest_frame_analysis_folder(cls):
+        migoto_subs_folders = os.listdir(cls.current_game_migoto_folder)
+
+        frame_analysis_folder_list = []
+
+        for subs_folder_name in migoto_subs_folders:
+            if subs_folder_name.startswith("FrameAnalysis"):
+                # print(subs_folder_name)
+                frame_analysis_folder_list.append(subs_folder_name)
+        
+        # 排序，确保能获取到最新的FrameAnalysis文件夹
+        frame_analysis_folder_list.sort()
+
+        latest_frame_analysis_folder_path = ""
+        if len(frame_analysis_folder_list) > 0:
+            latest_frame_analysis_folder_path = os.path.join(cls.current_game_migoto_folder, frame_analysis_folder_list[-1])
+
+        return latest_frame_analysis_folder_path
+    
+
+    @classmethod
+    def path_gametype_config_folder(cls):
+        gametype_config_folder = os.path.join(cls.path_configs_folder(),"GameTypeConfigs\\")
+        return gametype_config_folder
+
+    @classmethod
+    def path_current_gametype_folder(cls):
+        current_gametype_folder = os.path.join(cls.path_gametype_config_folder(),cls.gamename + "\\")
+        return current_gametype_folder
+    
+    @classmethod
+    def path_latest_frameanalysis_log_file(cls):
+        latest_frame_analysis_folder_path = cls.path_latest_frame_analysis_folder()
+        latest_framenanalysis_log_file_path = os.path.join(latest_frame_analysis_folder_path, "log.txt")
+        return latest_framenanalysis_log_file_path
     

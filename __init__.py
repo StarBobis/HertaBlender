@@ -12,6 +12,7 @@ from .properties.properties_dbmt_path import Properties_DBMT_Path
 from .properties.properties_import_model import Properties_ImportModel
 from .properties.properties_generate_mod import Properties_GenerateMod
 from .properties.properties_wwmi import Properties_WWMI
+from .properties.properties_extract_model import Properties_ExtractModel
 
 from .migoto.migoto_import import *
 
@@ -138,6 +139,7 @@ register_classes = (
     Properties_WWMI,
     Properties_DBMT_Path,
     Properties_GenerateMod,
+    Properties_ExtractModel,
 
     # DBMT所在位置
     OBJECT_OT_select_dbmt_folder,
@@ -196,8 +198,11 @@ register_classes = (
 
 
     # SSMT预备代码
-    # PanelSSMTExtractModel,
-    # SSMTExtractModelGI,
+    PanelSSMTBasicConfig,
+
+    PanelSSMTExtractModel,
+    SSMTExtractModelGI,
+    SSMTExtractModelZZZ,
 )
 
 
@@ -209,6 +214,7 @@ def register():
     bpy.types.Scene.properties_wwmi = bpy.props.PointerProperty(type=Properties_WWMI)
     bpy.types.Scene.properties_import_model = bpy.props.PointerProperty(type=Properties_ImportModel)
     bpy.types.Scene.properties_generate_mod = bpy.props.PointerProperty(type=Properties_GenerateMod)
+    bpy.types.Scene.properties_extract_model = bpy.props.PointerProperty(type=Properties_ExtractModel)
 
     bpy.types.VIEW3D_MT_object_context_menu.append(menu_func_migoto_right_click)
     bpy.types.OUTLINER_MT_collection.append(menu_dbmt_mark_collection_switch)
