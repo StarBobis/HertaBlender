@@ -190,7 +190,7 @@ register_classes = (
 
     HertaUpdatePreference,
 
-    
+
     ExtractSubmeshOperator,
     PanelModelSplit,
 
@@ -235,9 +235,6 @@ def unregister():
     # 卸载右键菜单
     bpy.types.VIEW3D_MT_object_context_menu.remove(menu_func_migoto_right_click)
     bpy.types.OUTLINER_MT_collection.remove(menu_dbmt_mark_collection_switch)
-
-    # 卸载插件面板中的更新面板
-    bpy.utils.unregister_class(HertaUpdatePreference)
 
     del bpy.types.Scene.submesh_start
     del bpy.types.Scene.submesh_count
