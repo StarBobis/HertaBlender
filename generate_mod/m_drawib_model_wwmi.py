@@ -72,6 +72,7 @@ class DrawIBModelWWMI:
                 draw_indexed_obj = M_DrawIndexed()
                 draw_indexed_obj.DrawNumber = str(comp_obj.index_count)
                 draw_indexed_obj.DrawOffsetIndex = str(comp_obj.index_offset)
+                draw_indexed_obj.AliasName = comp_obj.name
                 self.obj_name_drawindexed_dict[comp_obj.name] = draw_indexed_obj
 
         # (98) 选中当前融合的obj对象，计算得到ib和category_buffer，以及每个IndexId对应的VertexId

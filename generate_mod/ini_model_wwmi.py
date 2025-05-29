@@ -570,7 +570,6 @@ class M_WWMIIniModel:
 
         for draw_ib, draw_ib_model in cls.drawib_drawibmodel_dict.items():
 
-            # XXX 在这里添加主要的ini生成逻辑
             cls.add_constants_section(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_present_section(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
             cls.add_commandlist_section(ini_builder=config_ini_builder,draw_ib_model=draw_ib_model)
