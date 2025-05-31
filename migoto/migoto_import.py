@@ -7,6 +7,7 @@ from ..properties.properties_import_model import Properties_ImportModel
 from ..utils.obj_utils import ExtractedObjectHelper
 from ..utils.obj_utils import ObjUtils
 from ..utils.json_utils import JsonUtils
+from ..utils.texture_utils import TextureUtils
 
 from array import array
 
@@ -128,16 +129,10 @@ def import_uv_layers(mesh, obj, texcoords):
             blender_uvs.data.foreach_set('uv', uv_array)
 
 
-def find_texture(texture_prefix, texture_suffix, directory):
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(texture_suffix) and file.startswith(texture_prefix):
-                texture_path = os.path.join(root, file)
-                return texture_path
-    return None
 
 
-def create_material_with_texture(obj, mesh_name:str, directory:str):
+
+def create_bsdf_with_diffuse_linked(obj, mesh_name:str, directory:str):
     # Credit to Rayvy
     # Изменим имя текстуры, чтобы оно точно совпадало с шаблоном (Change the texture name to match the template exactly)
     material_name = f"{mesh_name}_Material"
@@ -153,31 +148,34 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
     
     texture_prefix = mesh_name_split[0] + "_" + mesh_name_split[1] # IB Hash
     
-    texture_suffix = "-DiffuseMap.tga"
 
     # 查找是否存在满足条件的转换好的tga贴图文件
     texture_path = None
-
+    
+    texture_suffix = "-DiffuseMap.tga"
     # 查找是否存在满足条件的转换好的tga贴图文件
-    texture_path = find_texture(texture_prefix, texture_suffix, directory)
+    texture_path = TextureUtils.find_texture(texture_prefix, texture_suffix, directory)
     # 如果不存在，试试查找jpg文件
     if texture_path is None:
         texture_suffix = "_DiffuseMap.jpg"
         # 查找jpg文件，如果这里没找到的话后面也是正常的，但是这里如果找到了就能起到兼容旧版本jpg文件的作用
-        texture_path = find_texture(texture_prefix, texture_suffix, directory)
+        texture_path = TextureUtils.find_texture(texture_prefix, texture_suffix, directory)
 
     # 如果还不存在，试试查找png文件
     if texture_path is None:
         texture_suffix = "_DiffuseMap.png"
         # 查找jpg文件，如果这里没找到的话后面也是正常的，但是这里如果找到了就能起到兼容旧版本jpg文件的作用
-        texture_path = find_texture(texture_prefix, texture_suffix, directory)
-
+        texture_path = TextureUtils.find_texture(texture_prefix, texture_suffix, directory)
 
     # Nico: 这里如果没有检测到对应贴图则不创建材质，也不新建BSDF
     # 否则会造成合并模型后，UV编辑界面选择不同材质的UV会跳到不同UV贴图界面导致无法正常编辑的问题
     if texture_path is not None:
         # Создание нового материала (Create new materials)
+
+        # 创建一个材质并且自动创建BSDF节点
         material = bpy.data.materials.new(name=material_name)
+
+        # 启用节点系统。
         material.use_nodes = True
 
         # Nico: Currently only support EN and ZH-CN
@@ -191,14 +189,15 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
 
         if bsdf:
             # Поиск текстуры (Search for textures)
-
             if texture_path:
                 tex_image = material.node_tree.nodes.new('ShaderNodeTexImage')
+
                 tex_image.image = bpy.data.images.load(texture_path)
 
                 # 因为tga格式贴图有alpha通道，所以必须用CHANNEL_PACKED才能显示正常颜色
                 tex_image.image.alpha_mode = "CHANNEL_PACKED"
-
+            
+                # 链接Color到基础色
                 material.node_tree.links.new(bsdf.inputs['Base Color'], tex_image.outputs['Color'])
 
             # Применение материала к мешу (Materials applied to bags)
@@ -206,6 +205,7 @@ def create_material_with_texture(obj, mesh_name:str, directory:str):
                 obj.data.materials[0] = material
             else:
                 obj.data.materials.append(material)
+
 
 # TODO 每个游戏的导入、生成Mod流程全都不一样
 def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib_path:str):
@@ -367,7 +367,7 @@ def import_3dmigoto_raw_buffers(operator, context, fmt_path:str, vb_path:str, ib
         mesh.calc_tangents()
 
     # auto texture 
-    create_material_with_texture(obj, mesh_name=mesh_name,directory= os.path.dirname(fmt_path))
+    create_bsdf_with_diffuse_linked(obj, mesh_name=mesh_name,directory= os.path.dirname(fmt_path))
 
     # ZZZ need reset rotation.
     if GlobalConfig.gamename not in ["GI","HI3","HSR","Game001"]:

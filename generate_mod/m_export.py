@@ -13,6 +13,9 @@ from ..config.main_config import GlobalConfig,GameCategory
 
 from ..properties.properties_generate_mod import Properties_GenerateMod
 
+from .mesh_data import MeshData
+
+
 class BufferDataConverter:
     '''
     各种格式转换
@@ -54,10 +57,6 @@ class BufferDataConverter:
     @classmethod
     def convert_4x_float32_to_r16g16b16a16_snorm(cls,input_array):
         return numpy.round(input_array * 32767).astype(numpy.int16)
-
-
-    
-
     
     @classmethod
     def normalize_weights(cls, weights):
@@ -149,7 +148,6 @@ class BufferDataConverter:
     
     # @classmethod
     # def convert_4x_float32_to_r8g8b8a8_unorm_blendweights(cls, input_array:numpy.ndarray):
-
     #     # 核心转换流程
     #     scaled = input_array * 255.0                  # 缩放至0-255范围
     #     rounded = numpy.around(scaled)                 # 四舍五入
@@ -349,12 +347,19 @@ class BufferModel:
         '''
         - 注意这里是从mesh.loops中获取数据，而不是从mesh.vertices中获取数据
         - 所以后续使用的时候要用mesh.loop里的索引来进行获取数据
+
+        TODO 
+        目前的权重导出架构，无法处理存在多个BLENDWEIGHTS的清空
+        需要重新开发权重导出代码
         '''
 
         mesh_loops = mesh.loops
         mesh_loops_length = len(mesh_loops)
         mesh_vertices = mesh.vertices
         mesh_vertices_length = len(mesh.vertices)
+
+        loop_vertex_indices = numpy.empty(mesh_loops_length, dtype=int)
+        mesh_loops.foreach_get("vertex_index", loop_vertex_indices)
 
         self.dtype = numpy.dtype([])
 
@@ -364,7 +369,8 @@ class BufferModel:
             np_type = MigotoUtils.get_nptype_from_format(d3d11_element.Format)
             format_len = MigotoUtils.format_components(d3d11_element.Format)
 
-            if d3d11_element_name in ["BLENDWEIGHTS","BLENDWEIGHT"]:
+            # 因为YYSLS出现了多个BLENDWEIGHTS的情况，所以这里只能用这个StartWith判断
+            if d3d11_element_name.startswith("BLENDWEIGHT"):
                 blendweights_formatlen = format_len
 
             # XXX 长度为1时必须手动指定为(1,)否则会变成1维数组
@@ -375,44 +381,9 @@ class BufferModel:
 
         self.element_vertex_ndarray = numpy.zeros(mesh_loops_length,dtype=self.dtype)
 
-        # 创建一个包含所有循环顶点索引的NumPy数组
-        loop_vertex_indices = numpy.empty(mesh_loops_length, dtype=int)
-        mesh_loops.foreach_get("vertex_index", loop_vertex_indices)
 
-        max_groups = 4
-
-        # Extract and sort the top 4 groups by weight for each vertex.
-        sorted_groups = [
-            sorted(v.groups, key=lambda x: x.weight, reverse=True)[:max_groups]
-            for v in mesh_vertices
-        ]
-
-        # Initialize arrays to hold all groups and weights with zeros.
-        all_groups = numpy.zeros((len(mesh_vertices), max_groups), dtype=int)
-        all_weights = numpy.zeros((len(mesh_vertices), max_groups), dtype=numpy.float32)
-
-
-        # Fill the pre-allocated arrays with group indices and weights.
-        for v_index, groups in enumerate(sorted_groups):
-            num_groups = min(len(groups), max_groups)
-            all_groups[v_index, :num_groups] = [g.group for g in groups][:num_groups]
-            all_weights[v_index, :num_groups] = [g.weight for g in groups][:num_groups]
-
-        # Initialize the blendindices and blendweights with zeros.
-        blendindices = numpy.zeros((mesh_loops_length, max_groups), dtype=numpy.uint32)
-        blendweights = numpy.zeros((mesh_loops_length, max_groups), dtype=numpy.float32)
-
-        # Map from loop_vertex_indices to precomputed data using advanced indexing.
-        valid_mask = (0 <= numpy.array(loop_vertex_indices)) & (numpy.array(loop_vertex_indices) < len(mesh_vertices))
-        valid_indices = loop_vertex_indices[valid_mask]
-
-        blendindices[valid_mask] = all_groups[valid_indices]
-        blendweights[valid_mask] = all_weights[valid_indices]
-
-        # XXX 必须对当前obj对象执行权重规格化，否则模型细分后会导致模型坑坑洼洼
-        if "Blend" in self.d3d11GameType.OrderedCategoryNameList:
-            if blendweights_formatlen > 1:
-                blendweights = blendweights / numpy.sum(blendweights, axis=1)[:, None]
+        mesh_data = MeshData(mesh=mesh)
+        blendweights_dict, blendindices_dict = mesh_data.calculate_blendweights_blendindices_v2()
 
 
         # 对每一种Element都获取对应的数据
@@ -424,7 +395,7 @@ class BufferModel:
                 vertex_coords = numpy.empty(mesh_vertices_length * 3, dtype=numpy.float32)
                 # Notice: 'undeformed_co' is static, don't need dynamic calculate like 'co' so it is faster.
                 mesh_vertices.foreach_get('undeformed_co', vertex_coords)
-
+                
                 positions = vertex_coords.reshape(-1, 3)[loop_vertex_indices]
                 if d3d11_element.Format == 'R16G16B16A16_FLOAT':
                     positions = positions.astype(numpy.float16)
@@ -629,6 +600,11 @@ class BufferModel:
             
                         
             elif d3d11_element_name.startswith('BLENDINDICES'):
+                blendindices = blendindices_dict.get(d3d11_element.SemanticIndex,None)
+                
+                # if blendindices is None:
+                #     blendindices = blendindices_dict.get(0,None)
+
                 if d3d11_element.Format == "R32G32B32A32_SINT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices
                 elif d3d11_element.Format == "R16G16B16A16_UINT":
@@ -648,6 +624,12 @@ class BufferModel:
                     self.element_vertex_ndarray[d3d11_element_name] = blendindices
                 
             elif d3d11_element_name.startswith('BLENDWEIGHT'):
+                blendweights = blendweights_dict.get(d3d11_element.SemanticIndex, None)
+
+                # if blendweights is None:
+                #     blendweights = blendweights_dict.get(0, None)
+
+
                 # patch时跳过生成数据
                 if d3d11_element.Format == "R32G32B32A32_FLOAT":
                     self.element_vertex_ndarray[d3d11_element_name] = blendweights
