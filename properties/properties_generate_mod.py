@@ -2,12 +2,6 @@ import bpy
 
 
 class Properties_GenerateMod(bpy.types.PropertyGroup):
-    export_same_number: bpy.props.BoolProperty(
-        name="使用共享TANGENT避免增加顶点数",
-        description="使用共享的TANGENT值从而避免hashable计算导致的顶点数增加 (在Unity-CPU-PreSkinning技术中常用，GF2常用，避免顶点数变多导致无法和原本模型顶点数对应)",
-        default=False
-    ) # type: ignore
-
     forbid_auto_texture_ini: bpy.props.BoolProperty(
         name="禁止自动贴图流程",
         description="生成Mod时禁止生成贴图相关ini部分",
@@ -77,13 +71,6 @@ class Properties_GenerateMod(bpy.types.PropertyGroup):
         bpy.context.scene.properties_generate_mod.credit_info_author_social_link
         '''
         return bpy.context.scene.properties_generate_mod.credit_info_author_social_link
-    
-    @classmethod
-    def export_same_number(cls):
-        '''
-        bpy.context.scene.properties_generate_mod.export_same_number
-        '''
-        return bpy.context.scene.properties_generate_mod.export_same_number
     
     @classmethod
     def recalculate_tangent(cls):

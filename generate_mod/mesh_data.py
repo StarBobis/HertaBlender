@@ -10,7 +10,7 @@ class MeshData:
     def __init__(self,mesh:bpy.types.Mesh) -> None:
         self.mesh = mesh
         
-    def calculate_blendweights_blendindices_v2(self):
+    def get_blendweights_blendindices_v2(self):
         '''
         升级版，支持多个SemanticIndex的BLENDWEIGHTS和BLENDINDICES
         '''
